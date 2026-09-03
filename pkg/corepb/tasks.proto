@@ -1,0 +1,238 @@
+syntax = "proto3";
+
+option go_package = "github.com/evrblk/moab/pkg/corepb";
+
+package com.evrblk.moab.corepb;
+
+import "pkg/corepb/common.proto";
+import "pkg/corepb/queues.proto";
+
+message Task {
+  TaskId id = 1;
+  bytes payload = 2;
+  sfixed64 created_at = 3;
+  sfixed64 scheduled_at = 4;
+  sfixed64 expires_at = 5;
+  string dedupe_key = 6;
+  TaskState state = 7;
+  int32 attempts = 8;
+  sfixed64 visible_at = 9;
+  sfixed64 last_failed_at = 10;
+  bytes debug_info = 11;
+  int64 keepalive_timeout_in_seconds = 12;
+  RetryStrategy retry_strategy = 13;
+  string thread_id = 14;
+}
+
+enum TaskState {
+  TASK_STATE_INVALID = 0;
+  TASK_STATE_ENQUEUED = 1;
+  TASK_STATE_IN_PROGRESS = 2;
+  TASK_STATE_DEAD = 3;
+}
+
+message TaskId {
+  fixed64 account_id = 1;
+  fixed64 queue_id = 2;
+  fixed64 task_id = 3;
+}
+
+message ExpirationIndexRecord {
+  TaskId task_id = 1;
+  sfixed64 expires_at = 2;
+}
+
+message Thread {
+  string thread_id = 1;
+  TaskId head_task_id = 2;
+  sfixed64 scheduled_at = 3;
+  sfixed64 visible_at = 4;
+}
+
+message EnqueueRequest {
+  QueueId queue_id = 1;
+  repeated EnqueueRequestEntry entries = 2;
+}
+
+message EnqueueRequestEntry {
+  enum OverwriteOnDuplicate {
+    OVERWRITE_ON_DUPLICATE_INVALID = 0;
+    OVERWRITE_ON_DUPLICATE_PAYLOAD = 1;
+    OVERWRITE_ON_DUPLICATE_SCHEDULED_AT = 2;
+    OVERWRITE_ON_DUPLICATE_EXPIRES_AT = 3;
+  }
+
+  bytes payload = 1;
+  sfixed64 scheduled_at = 2;
+  sfixed64 expires_at = 3;
+  string dedupe_key = 4;
+  int64 keepalive_timeout_in_seconds = 5;
+  RetryStrategy retry_strategy = 6;
+  repeated OverwriteOnDuplicate overwrite_on_duplicate = 7;
+  string thread_id = 8;
+}
+
+message EnqueueResponse {
+  repeated Task tasks = 1;
+}
+
+message DequeueRequest {
+  QueueId queue_id = 1;
+  DequeuingSettings dequeuing_settings = 2;
+  int32 dequeue_limit = 3;
+  // Resolved from Queue by the server, same as dequeuing_settings — the
+  // tasks core never reads queue config itself. Used to decide, when a
+  // keepalive timeout is discovered here, whether the task should be
+  // dead-lettered or deleted outright once its retries are exhausted.
+  DeadLetterQueueConfig dead_letter_queue_config = 4;
+}
+
+message DequeueResponse {
+  repeated Task tasks = 1;
+}
+
+message ReportStatusRequest {
+  QueueId queue_id = 1;
+  repeated ReportStatusRequestEntry entries = 2;
+  // Resolved from Queue by the server, same as DequeueRequest's — used to
+  // route an explicit STATUS_FAILED report to dead/deleted correctly.
+  DeadLetterQueueConfig dead_letter_queue_config = 3;
+}
+
+message ReportStatusRequestEntry {
+  enum Status {
+    STATUS_INVALID = 0;
+    STATUS_SUCCEEDED = 1;
+    STATUS_IN_PROGRESS = 2;
+    STATUS_FAILED = 3;
+  }
+
+  TaskId task_id = 1;
+  int32 attempt = 2;
+  Status status = 3;
+}
+
+message ReportStatusResponse {
+
+}
+
+message DeleteTasksRequest {
+  QueueId queue_id = 1;
+  repeated fixed64 task_ids = 2;
+}
+
+message DeleteTasksResponse {
+
+}
+
+message RestartTasksRequest {
+  QueueId queue_id = 1;
+  repeated RestartTasksRequestEntry entries = 2;
+}
+
+message RestartTasksRequestEntry {
+  fixed64 task_id = 1;
+  // 0 - now (mirrors EnqueueRequestEntry's ScheduledAt).
+  sfixed64 scheduled_at = 2;
+  // 0 - queue default (mirrors EnqueueRequestEntry's ExpiresAt); the tasks
+  // core has no way to compute now + Queue.ExpiresInSeconds itself, so the
+  // server resolves this the same way it does for Enqueue.
+  sfixed64 expires_at = 3;
+}
+
+message RestartTasksResponse {
+  repeated RestartTasksResponseEntry entries = 1;
+}
+
+message RestartTasksResponseEntry {
+  enum Result {
+    RESULT_INVALID = 0;
+    RESULT_RESTARTED = 1;
+    RESULT_NOT_FOUND = 2;
+    RESULT_NOT_DEAD = 3;
+    RESULT_DEDUPE_CONFLICT = 4;
+  }
+
+  fixed64 task_id = 1;
+  Result result = 2;
+  // Set iff result == RESULT_RESTARTED.
+  Task task = 3;
+}
+
+message GetStatisticsRequest {
+  QueueId queue_id = 1;
+}
+
+message GetStatisticsResponse {
+  int64 enqueued_tasks_count = 1;
+  int64 in_progress_tasks_count = 2;
+  int64 dead_tasks_count = 3;
+  int64 processed_tasks_count = 4;
+  int64 expired_tasks_count = 5;
+  // Age of the oldest task actually available to dequeue right now, not
+  // every ENQUEUED task: a non-head member of a thread whose head is busy
+  // (IN_PROGRESS) is excluded, since it cannot be dequeued until the head
+  // finishes.
+  int64 age_of_oldest_enqueued_task = 6;
+  int64 task_id_sequence = 7;
+}
+
+message GetTaskRequest {
+  TaskId task_id = 1;
+}
+
+message GetTaskResponse {
+  Task task = 1;
+}
+
+message PurgeQueueRequest {
+  QueueId queue_id = 1;
+}
+
+message PurgeQueueResponse {
+
+}
+
+message ListTasksRequest {
+  QueueId queue_id = 1;
+  PaginationToken pagination_token = 2;
+  int32 limit = 3;
+}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+  PaginationToken next_pagination_token = 2;
+  PaginationToken previous_pagination_token = 3;
+}
+
+message RunTasksGarbageCollectionRequest {
+  int32 max_visited_tasks = 1;
+  int32 page_size = 2;
+}
+
+message RunTasksGarbageCollectionResponse {
+
+}
+
+message TasksCounter {
+  int64 enqueued_tasks_count = 1;
+  int64 in_progress_tasks_count = 2;
+  int64 dead_tasks_count = 3;
+  // Monotonic lifetime counters, distinct from the current-occupancy gauges
+  // above (never decremented): total tasks ever completed successfully, and
+  // total tasks ever deleted for having expired (whether while ENQUEUED,
+  // IN_PROGRESS-then-failed, or DEAD past DLQ retention).
+  int64 processed_tasks_count = 4;
+  int64 expired_tasks_count = 5;
+}
+
+message QueueState {
+  fixed64 task_id_sequence = 1;
+  int64 last_visited_enqueued = 2;
+  int64 last_visited_in_progress = 3;
+}
+
+message RateLimiterState {
+  int64 tokens = 1;
+  sfixed64 last_refilled_at = 2;
+}

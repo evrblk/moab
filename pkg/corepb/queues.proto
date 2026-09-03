@@ -1,0 +1,303 @@
+syntax = "proto3";
+
+option go_package = "github.com/evrblk/moab/pkg/corepb";
+
+package com.evrblk.moab.corepb;
+
+import "pkg/corepb/common.proto";
+
+message Queue {
+  QueueId id = 1;
+  string name = 2;
+  string description = 3;
+  sfixed64 created_at = 4;
+  sfixed64 updated_at = 5;
+  int64 version = 6;
+
+  // Defaults on queue level, overrides on task level
+  int64 keepalive_timeout_in_seconds = 7;
+  RetryStrategy retry_strategy = 8;
+  DequeuingSettings dequeuing_settings = 9;
+  DeadLetterQueueConfig dead_letter_queue_config = 10;
+
+  int64 expires_in_seconds = 11;
+
+  // Denormalized count of schedules belonging to this queue, maintained by
+  // CreateSchedule/DeleteSchedule. Used instead of a separate counter entity
+  // to bound the number of schedules per queue and to report schedule counts
+  // without an O(n) scan over the schedules table.
+  int64 schedules_count = 12;
+}
+
+message QueueId {
+  fixed64 account_id = 1;
+  fixed64 queue_id = 2;
+}
+
+message DeadLetterQueueConfig {
+  bool enable = 1;
+  int64 max_size = 2; // 0 - unlimited
+  // Required whenever this message is set, regardless of enable; bounded to
+  // [minExpiresTimeoutInSeconds, maxDLQRetentionPeriod] in validators.go — no
+  // "unlimited" sentinel, every dead task always has a real retention deadline.
+  int64 retention_period_in_seconds = 3;
+}
+
+//message CompletedTasksSetConfig {
+//  bool enable = 1;
+//  int64 max_size = 2; // 0 - unlimited
+//  int64 retention_period = 3; // TODO units? 0 - unlimited
+//}
+
+message DequeuingSettings {
+  int64 max_in_progress_tasks = 1;
+  TokenBucketRateLimiting rate_limiting = 2;
+  bool dequeuing_paused = 3;
+}
+
+message TokenBucketRateLimiting {
+  int64 max_tokens = 1;
+  int64 interval = 2;
+  IntervalUnit interval_unit = 3;
+}
+
+enum IntervalUnit {
+  INTERVAL_UNIT_INVALID = 0;
+  INTERVAL_UNIT_SECONDS = 1;
+  INTERVAL_UNIT_MINUTES = 2;
+  INTERVAL_UNIT_HOURS = 3;
+}
+
+
+message Schedule {
+  ScheduleId id = 1;
+  string name = 2;
+  string description = 3;
+  sfixed64 created_at = 4;
+  sfixed64 updated_at = 5;
+  int64 version = 6;
+  string cron = 7;
+  bytes payload = 8;
+  string dedupe_key = 9;
+
+  // Override for expiration set on the queue. 0 - no override.
+  int64 expires_in_seconds = 10;
+  int64 keepalive_timeout_in_seconds = 11;
+  RetryStrategy retry_strategy = 12;
+  // Timezone at which to work with cron schedule
+  string timezone = 13;
+  // Last time CronTasker checked on this schedule
+  sfixed64 last_checked_at = 14;
+  // Next earliest cron tick which is scheduled, but not enqueued yet
+  sfixed64 next_scheduled_at = 15;
+  sfixed64 last_enqueued_for = 16;
+
+  // TODO pause schedule
+}
+
+message ScheduleId {
+  fixed64 account_id = 1;
+  fixed64 queue_id = 2;
+  fixed64 schedule_id = 3;
+}
+
+message CreateQueueRequest {
+  QueueId queue_id = 1;
+  string name = 2;
+  string description = 3;
+  int64 keepalive_timeout_in_seconds = 4;
+  RetryStrategy retry_strategy = 5;
+  DequeuingSettings dequeuing_settings = 6;
+  DeadLetterQueueConfig dead_letter_queue_config = 7;
+  int64 expires_in_seconds = 8;
+  int64 max_number_of_queues = 9;
+}
+
+message CreateQueueResponse {
+  Queue queue = 1;
+}
+
+message GetQueueRequest {
+  QueueId queue_id = 1;
+}
+
+message GetQueueResponse {
+  Queue queue = 1;
+}
+
+message GetQueueByNameRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+}
+
+message GetQueueByNameResponse {
+  Queue queue = 1;
+}
+
+message UpdateQueueRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+  string description = 3;
+  int64 keepalive_timeout_in_seconds = 4;
+  RetryStrategy retry_strategy = 5;
+  DequeuingSettings dequeuing_settings = 6;
+  DeadLetterQueueConfig dead_letter_queue_config = 7;
+  int64 expires_in_seconds = 8;
+  // Optimistic concurrency check: must equal the queue's current version or
+  // the update is rejected.
+  int64 expected_version = 9;
+}
+
+message UpdateQueueResponse {
+  Queue queue = 1;
+}
+
+message DeleteQueueRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+}
+
+message DeleteQueueResponse {
+
+}
+
+message ListQueuesRequest {
+  fixed64 account_id = 1;
+  PaginationToken pagination_token = 2;
+  int32 limit = 3;
+}
+
+message ListQueuesResponse {
+  repeated Queue queues = 1;
+  PaginationToken next_pagination_token = 2;
+  PaginationToken previous_pagination_token = 3;
+}
+
+message CreateScheduleRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+  fixed64 schedule_id = 3;
+  string schedule_name = 4;
+  string description = 5;
+  string cron = 6;
+  bytes payload = 7;
+  string dedupe_key = 8;
+  int64 expires_in_seconds = 9;
+  int64 keepalive_timeout_in_seconds = 10;
+  RetryStrategy retry_strategy = 11;
+  string timezone = 12;
+  int64 max_number_of_schedules_per_queue = 13;
+}
+
+message CreateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message GetScheduleRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+  string schedule_name = 3;
+}
+
+message GetScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message ListSchedulesRequest {
+  QueueId queue_id = 1;
+  PaginationToken pagination_token = 2;
+  int32 limit = 3;
+}
+
+message ListSchedulesResponse {
+  repeated Schedule schedules = 1;
+  PaginationToken next_pagination_token = 2;
+  PaginationToken previous_pagination_token = 3;
+}
+
+message UpdateScheduleRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+  string schedule_name = 3;
+  string description = 4;
+  string cron = 5;
+  bytes payload = 6;
+  string dedupe_key = 7;
+  int64 expires_in_seconds = 8;
+  int64 keepalive_timeout_in_seconds = 9;
+  RetryStrategy retry_strategy = 10;
+  string timezone = 11;
+  // Optimistic concurrency check: must equal the schedule's current version or
+  // the update is rejected.
+  int64 expected_version = 12;
+}
+
+message UpdateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message DeleteScheduleRequest {
+  fixed64 account_id = 1;
+  string queue_name = 2;
+  string schedule_name = 3;
+}
+
+message DeleteScheduleResponse {
+
+}
+
+message DequeSchedulesRequest {
+  // Absolute UnixNano timestamp
+  int64 due_before = 1;
+}
+
+message DequeSchedulesResponse {
+  repeated DequeSchedulesResponseEntry entries = 1;
+}
+
+message DequeSchedulesResponseEntry {
+  Schedule schedule = 1;
+  Queue queue = 2;
+}
+
+message ReportSchedulesStatusRequest {
+  ScheduleId schedule_id = 1;
+  sfixed64 next_scheduled_at = 2;
+  // The greatest ScheduledAt among the tasks the worker actually enqueued
+  // for this schedule during this tick, or 0 if none were enqueued (in which
+  // case the previously stored value is left untouched). Together with
+  // Schedule.last_checked_at (set from this request's own Now, not a
+  // separate field), identifies the time range for which tasks should have
+  // been (but may not have been) scheduled: (previous last_enqueued_for,
+  // due_before] as of last_checked_at.
+  sfixed64 last_enqueued_for = 3;
+}
+
+message ReportSchedulesStatusResponse {
+
+}
+
+message QueuesCounter {
+  int64 number_of_queues = 1;
+}
+
+// QueuesGarbageCollectionRecord is an internal bookkeeping entry queuing a
+// deleted queue's schedules for asynchronous deletion. DeleteQueue creates
+// one of these instead of deleting the queue's schedules synchronously;
+// RunQueuesGarbageCollection drains them in bounded batches.
+message QueuesGarbageCollectionRecord {
+  QueueId queue_id = 1;
+}
+
+message RunQueuesGarbageCollectionRequest {
+  // How many pending GC records (deleted queues) to process in this call.
+  int32 gc_records_page_size = 1;
+  // How many schedules to delete per GC record in this call.
+  int32 gc_record_schedules_page_size = 2;
+  // Total schedule deletions allowed across all GC records in this call.
+  int32 max_visited_schedules = 3;
+}
+
+message RunQueuesGarbageCollectionResponse {
+
+}

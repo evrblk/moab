@@ -1,0 +1,86 @@
+go_code:
+  output_package: github.com/evrblk/moab/pkg/coreapis
+  core_types_package: github.com/evrblk/moab/pkg/corepb
+cores:
+  - name: MoabQueues
+    read_methods:
+      - name: GetQueue
+        method_number: 1
+        sharded: true
+      - name: GetQueueByName
+        method_number: 2
+        sharded: true
+      - name: ListQueues
+        method_number: 3
+        sharded: true
+      - name: GetSchedule
+        method_number: 4
+        sharded: true
+      - name: DequeSchedules
+        method_number: 5
+        sharded: false
+      - name: ListSchedules
+        method_number: 6
+        sharded: true
+    update_methods:
+      - name: CreateQueue
+        method_number: 1
+        sharded: true
+      - name: UpdateQueue
+        method_number: 2
+        sharded: true
+      - name: DeleteQueue
+        method_number: 3
+        sharded: true
+      - name: CreateSchedule
+        method_number: 4
+        sharded: true
+      - name: UpdateSchedule
+        method_number: 5
+        sharded: true
+      - name: DeleteSchedule
+        method_number: 6
+        sharded: true
+      - name: ReportSchedulesStatus
+        method_number: 7
+        sharded: false
+      - name: RunQueuesGarbageCollection
+        method_number: 8
+        sharded: false
+
+  - name: MoabTasks
+    read_methods:
+      - name: GetTask
+        method_number: 1
+        sharded: true
+      - name: GetStatistics
+        method_number: 2
+        sharded: true
+    update_methods:
+      - name: Enqueue
+        method_number: 1
+        sharded: true
+      - name: Dequeue
+        method_number: 2
+        sharded: true
+      - name: ReportStatus
+        method_number: 3
+        sharded: true
+      - name: DeleteTasks
+        method_number: 4
+        sharded: true
+      - name: RestartTasks
+        method_number: 5
+        sharded: true
+      - name: PurgeQueue
+        method_number: 6
+        sharded: true
+      - name: RunTasksGarbageCollection
+        method_number: 7
+        sharded: false
+
+stubs:
+  - name: Moab
+    cores:
+      - MoabQueues
+      - MoabTasks

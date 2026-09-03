@@ -1,0 +1,55 @@
+.PHONY: build generate moab clean moab-image
+
+DONT_FIND := -name .git -prune -o -name .cache -prune -o -name .pkg -prune -o
+
+GO_BUILD_ENV := GOAMD64=v2
+
+# Lint, static checks, vuln shecks
+lint:
+	go fmt ./...
+	go vet ./...
+	staticcheck ./...
+	govulncheck ./...
+
+# Builds all artifacts
+build:
+	$(GO_BUILD_ENV) go build ./...
+
+# Generates protos and go:generate
+generate:
+	@echo "Generating proto files..."
+	protoc --proto_path=. \
+		--go_out=. \
+		--go_opt=paths=source_relative \
+		--go-vtproto_out=. \
+		--go-vtproto_opt=features=marshal+unmarshal+size \
+		--go-vtproto_opt=paths=source_relative \
+		./pkg/corepb/*.proto
+
+	@echo "Generating Monstera stubs and adapters implementations..."
+	cd ./pkg/coreapis; go tool github.com/evrblk/monstera/cmd/monstera code generate
+
+	@echo "Generating Marshal/Unmarshal implementations..."
+	go tool github.com/evrblk/yellowstone-common/codegen/genmarshal -dir ./pkg/corepb -output ./pkg/corepb/marshal_gen.go
+
+moab: build
+	$(GO_BUILD_ENV) go build -o ./cmd/moab/moab ./cmd/moab
+
+format:
+	find . $(DONT_FIND) -name '*.pb.go' \
+		-type f -name '*.go' -exec gofmt -w -s {} \;
+	find . $(DONT_FIND) -name '*.pb.go' \
+		-type f -name '*.go' -exec goimports -w -local github.com/evrblk/moab {} \;
+
+clean:
+	rm -rf cmd/moab/moab
+	rm -rf ./.data
+	rm -rf ./tools/dev/debug-cluster/.data
+	rm -rf ./tools/dev/compose-cluster/.data
+	rm -rf ./tools/dev/compose-cluster/moab
+	rm -rf ./tools/dev/compose-cluster/monstera
+	rm -rf ./tools/dev/load-generator/load-generator
+	go clean ./...
+
+moab-image:
+	docker build -t evrblk/moab -f cmd/moab/Dockerfile .

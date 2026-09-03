@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option go_package = "github.com/evrblk/moab/pkg/corepb";
+
+package com.evrblk.moab.corepb;
+
+// PaginationToken is an opaque cursor into a paginated list. Callers receive it
+// in a list response and pass it back verbatim to fetch the adjacent page; the
+// encoded value is an internal store key and must not be parsed by clients.
+message PaginationToken {
+  // Direction the token pages in, relative to where it was issued.
+  enum Type {
+    INVALID = 0;
+    NEXT = 1;
+    PREVIOUS = 2;
+  }
+
+  Type type = 1;
+  // Opaque encoded position (an internal store key); do not interpret.
+  bytes value = 2;
+}
+
+message RetryStrategy {
+  repeated int64 retry_intervals_in_seconds = 1;
+  // TODO: add JitterVariance
+}
