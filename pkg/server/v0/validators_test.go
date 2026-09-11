@@ -1123,6 +1123,76 @@ func TestValidateListSchedulesRequest(t *testing.T) {
 	}
 }
 
+func TestValidateListTasksRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		request     *moabpb.ListTasksRequest
+		shouldError bool
+	}{
+		{
+			name:        "empty request",
+			request:     &moabpb.ListTasksRequest{},
+			shouldError: true,
+		},
+		{
+			name: "invalid queue name",
+			request: &moabpb.ListTasksRequest{
+				QueueName: "invalid name",
+			},
+			shouldError: true,
+		},
+		{
+			name: "valid request with no state filter",
+			request: &moabpb.ListTasksRequest{
+				QueueName: "myqueue1",
+			},
+			shouldError: false,
+		},
+		{
+			name: "valid request filtered to enqueued",
+			request: &moabpb.ListTasksRequest{
+				QueueName: "myqueue1",
+				State:     moabpb.TaskState_TASK_STATE_ENQUEUED,
+			},
+			shouldError: false,
+		},
+		{
+			name: "valid request filtered to in progress",
+			request: &moabpb.ListTasksRequest{
+				QueueName: "myqueue1",
+				State:     moabpb.TaskState_TASK_STATE_IN_PROGRESS,
+			},
+			shouldError: false,
+		},
+		{
+			name: "valid request filtered to dead",
+			request: &moabpb.ListTasksRequest{
+				QueueName: "myqueue1",
+				State:     moabpb.TaskState_TASK_STATE_DEAD,
+			},
+			shouldError: false,
+		},
+		{
+			name: "unrecognized state",
+			request: &moabpb.ListTasksRequest{
+				QueueName: "myqueue1",
+				State:     moabpb.TaskState(99),
+			},
+			shouldError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if test.shouldError {
+				require.Error(t, ValidateListTasksRequest(test.request))
+			} else {
+				require.NoError(t, ValidateListTasksRequest(test.request))
+			}
+		})
+	}
+}
+
 func TestValidateCreateScheduleRequest(t *testing.T) {
 	tests := []struct {
 		name        string

@@ -70,4 +70,17 @@ func (w *MoabTasksGCWorker) runGarbageCollection(shardId string, now time.Time) 
 		moabTasksGCWorkerErrorsTotal.WithLabelValues(shardId).Inc()
 		log.Printf("RunTasksGarbageCollection failed: %v", err)
 	}
+
+	// Drains tasks left behind by PurgeQueue under a rotated-out queue id.
+	// A separate pass from the expiry sweep above: it deletes unconditionally
+	// (not just what's expired) but only for queue ids PurgeQueue has marked.
+	_, err = w.coreApiClient.RunPurgeQueueGarbageCollection(context.TODO(), &corepb.RunPurgeQueueGarbageCollectionRequest{
+		GcRecordsPageSize:     100,
+		GcRecordTasksPageSize: 250,
+		MaxVisitedTasks:       1000,
+	}, shardId)
+	if err != nil {
+		moabTasksGCWorkerErrorsTotal.WithLabelValues(shardId).Inc()
+		log.Printf("RunPurgeQueueGarbageCollection failed: %v", err)
+	}
 }

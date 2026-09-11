@@ -112,10 +112,31 @@ func (s *MoabApiServerHandler) UpdateQueue(ctx context.Context, req *moabpb.Upda
 	}, nil
 }
 
+// DeleteQueue removes a queue and, like PurgeQueue, marks its tasks for
+// asynchronous cleanup instead of leaving them to rot forever unreachable:
+// the queue's id is retired for good (never reused, unlike PurgeQueue's
+// rotation), so TasksCore.PurgeQueue's marker fits it exactly. This also
+// closes the same cross-gateway cache gap PurgeQueue has: another gateway
+// process's queuesCache can still hand out this deleted queue's stale id for
+// up to queuesCacheTTL, so without the marker, a request landing there would
+// silently write into (or read from) a queue_id nothing will ever look at
+// again, rather than getting the NotFound that lets the handler retry (or,
+// here, correctly fail once the retry's fresh lookup finds nothing at all).
 func (s *MoabApiServerHandler) DeleteQueue(ctx context.Context, req *moabpb.DeleteQueueRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.DeleteQueueResponse, error) {
-	_, err := s.moabClient.DeleteQueue(ctx, &corepb.DeleteQueueRequest{
+	resp1, err := s.moabClient.DeleteQueue(ctx, &corepb.DeleteQueueRequest{
 		AccountId: accountId,
 		QueueName: req.QueueName,
+	})
+	if err != nil {
+		return nil, mrpc.ErrorToGRPC(err)
+	}
+
+	// The queue is gone under this id for good; this process's own cached
+	// entry must not survive it (same reasoning as PurgeQueue's).
+	s.queuesCache.Delete(fmt.Sprintf("%d/%s", accountId, req.QueueName))
+
+	_, err = s.moabClient.PurgeQueue(ctx, &corepb.PurgeQueueRequest{
+		QueueId: resp1.QueueId,
 	})
 	if err != nil {
 		return nil, mrpc.ErrorToGRPC(err)
@@ -159,7 +180,7 @@ func (s *MoabApiServerHandler) ListQueues(ctx context.Context, req *moabpb.ListQ
 
 func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.EnqueueResponse, error) {
 	if int32(len(req.Entries)) > limits.MaxEnqueueBatchSize {
-		return nil, status.Errorf(codes.InvalidArgument, "too many entries")
+		return nil, status.Errorf(codes.InvalidArgument, "too many entries") // TODO: unified error message
 	}
 
 	now := time.Now()
@@ -207,7 +228,21 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 		Entries: entries,
 	})
 	if err != nil {
-		return nil, mrpc.ErrorToGRPC(err)
+		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
+		if refreshErr != nil {
+			return nil, mrpc.ErrorToGRPC(refreshErr)
+		}
+		if freshQueue == nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
+
+		enqueueResponse, err = s.moabClient.Enqueue(ctx, &corepb.EnqueueRequest{
+			QueueId: freshQueue.Id,
+			Entries: entries,
+		})
+		if err != nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
 	}
 
 	tasks = append(tasks, enqueueResponse.Tasks...)
@@ -218,16 +253,15 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 }
 
 // resolveScheduledAtAndExpiresAt applies the shared Enqueue/RestartTasks
-// rules for ScheduledAt and ExpiresAt — kept as one function so the two
-// handlers can't drift apart. ScheduledAt clamps up to now if unset/past (an
-// obviously-correct
-// interpretation), but is rejected — not clamped — if it's beyond
-// maxScheduledDelaySeconds out: an over-far value is far more often a
-// unit-confusion bug than a deliberate request, and silently clamping it
-// would move when the task's real work happens. ExpiresAt defaults to (and
-// is clamped down to, never rejected) scheduledAt + queueExpiresInSeconds if
-// unset or past that ceiling — an over-long request there only trims a
-// safety margin, so it's safe to cap rather than reject.
+// rules for ScheduledAt and ExpiresAt. ScheduledAt clamps up to now if
+// unset/past (an obviously-correct interpretation), but is rejected — not
+// clamped — if it's beyond maxScheduledDelaySeconds out: an over-far value
+// is far more often a unit-confusion bug than a deliberate request, and
+// silently clamping it would move when the task's real work happens.
+// ExpiresAt defaults to (and is clamped down to, never rejected)
+// scheduledAt + queueExpiresInSeconds if unset or past that ceiling — an
+// over-long request there only trims a safety margin, so it's safe to cap
+// rather than reject.
 func resolveScheduledAtAndExpiresAt(now time.Time, requestedScheduledAt, requestedExpiresAt int64, queueExpiresInSeconds int64, maxScheduledDelaySeconds int64) (scheduledAt int64, expiresAt int64, err error) {
 	maxScheduledAt := now.Add(time.Second * time.Duration(maxScheduledDelaySeconds)).UnixNano()
 	if requestedScheduledAt > maxScheduledAt {
@@ -275,7 +309,23 @@ func (s *MoabApiServerHandler) Dequeue(ctx context.Context, req *moabpb.DequeueR
 		DeadLetterQueueConfig: queue.DeadLetterQueueConfig,
 	})
 	if err != nil {
-		return nil, mrpc.ErrorToGRPC(err)
+		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
+		if refreshErr != nil {
+			return nil, mrpc.ErrorToGRPC(refreshErr)
+		}
+		if freshQueue == nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
+
+		dequeueResponse, err = s.moabClient.Dequeue(ctx, &corepb.DequeueRequest{
+			QueueId:               freshQueue.Id,
+			DequeuingSettings:     freshQueue.DequeuingSettings,
+			DequeueLimit:          dequeueLimit,
+			DeadLetterQueueConfig: freshQueue.DeadLetterQueueConfig,
+		})
+		if err != nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
 	}
 
 	return &moabpb.DequeueResponse{
@@ -527,24 +577,45 @@ func (s *MoabApiServerHandler) ListSchedules(ctx context.Context, req *moabpb.Li
 	}, nil
 }
 
+// PurgeQueue empties a queue in one quick call regardless of how many tasks
+// it holds: it rotates the queue onto a freshly generated id via
+// SwapQueueId (same name, same settings, schedules carried over) so every
+// task from this point on lands under the new id, then tells TasksCore to
+// asynchronously drain whatever is left under the old one. The ID
+// generation/retry convention mirrors CreateQueue's.
 func (s *MoabApiServerHandler) PurgeQueue(ctx context.Context, req *moabpb.PurgeQueueRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.PurgeQueueResponse, error) {
-	resp1, err := s.moabClient.GetQueueByName(ctx, &corepb.GetQueueByNameRequest{
-		AccountId: accountId,
-		QueueName: req.QueueName,
-	})
-	if err != nil {
-		return nil, mrpc.ErrorToGRPC(err)
+	for range maxIDGenerationAttempts {
+		resp1, err := s.moabClient.SwapQueueId(ctx, &corepb.SwapQueueIdRequest{
+			AccountId:  accountId,
+			QueueName:  req.QueueName,
+			NewQueueId: rand.Uint64(),
+		})
+		if err != nil {
+			if isIDCollision(err) {
+				continue
+			}
+			return nil, mrpc.ErrorToGRPC(err)
+		}
+
+		// The swap already committed at this point, so getQueue's cached
+		// pre-purge entry (up to queuesCacheTTL stale) must not survive it —
+		// otherwise a call that lands in that window (e.g. Enqueue) would
+		// resolve this name to the old id and write a task that's about to
+		// be asynchronously deleted out from under it.
+		s.queuesCache.Delete(fmt.Sprintf("%d/%s", accountId, req.QueueName))
+
+		// TODO return stats
+		_, err = s.moabClient.PurgeQueue(ctx, &corepb.PurgeQueueRequest{
+			QueueId: resp1.OldQueueId,
+		})
+		if err != nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
+
+		return &moabpb.PurgeQueueResponse{}, nil
 	}
 
-	// TODO return stats
-	_, err = s.moabClient.PurgeQueue(ctx, &corepb.PurgeQueueRequest{
-		QueueId: resp1.Queue.Id,
-	})
-	if err != nil {
-		return nil, mrpc.ErrorToGRPC(err)
-	}
-
-	return &moabpb.PurgeQueueResponse{}, nil
+	return nil, status.Error(codes.Internal, "failed to generate a unique id")
 }
 
 func (s *MoabApiServerHandler) GetTask(ctx context.Context, req *moabpb.GetTaskRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.GetTaskResponse, error) {
@@ -575,6 +646,81 @@ func (s *MoabApiServerHandler) GetTask(ctx context.Context, req *moabpb.GetTaskR
 	return &moabpb.GetTaskResponse{
 		Task: taskToFront(resp2.Task),
 	}, nil
+}
+
+func (s *MoabApiServerHandler) ListTasks(ctx context.Context, req *moabpb.ListTasksRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.ListTasksResponse, error) {
+	queue, err := s.getQueue(ctx, accountId, req.QueueName)
+	if err != nil {
+		return nil, mrpc.ErrorToGRPC(err)
+	}
+
+	// Decode pagination token from base64-encoded format
+	paginationToken, err := paginationTokenToCore(req.PaginationToken)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+	}
+
+	resp1, err := s.moabClient.ListTasks(ctx, &corepb.ListTasksRequest{
+		QueueId:         queue.Id,
+		PaginationToken: paginationToken,
+		Limit:           req.Limit,
+		State:           taskStateFilterToCore(req.State),
+	})
+	if err != nil {
+		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
+		if refreshErr != nil {
+			return nil, mrpc.ErrorToGRPC(refreshErr)
+		}
+		if freshQueue == nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
+
+		resp1, err = s.moabClient.ListTasks(ctx, &corepb.ListTasksRequest{
+			QueueId:         freshQueue.Id,
+			PaginationToken: paginationToken,
+			Limit:           req.Limit,
+			State:           taskStateFilterToCore(req.State),
+		})
+		if err != nil {
+			return nil, mrpc.ErrorToGRPC(err)
+		}
+	}
+
+	// Encode pagination tokens for response
+	nextPaginationToken, err := paginationTokenToFront(resp1.NextPaginationToken)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%s", err)
+	}
+	previousPaginationToken, err := paginationTokenToFront(resp1.PreviousPaginationToken)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%s", err)
+	}
+
+	return &moabpb.ListTasksResponse{
+		Tasks:                   tasksToFront(resp1.Tasks),
+		NextPaginationToken:     nextPaginationToken,
+		PreviousPaginationToken: previousPaginationToken,
+	}, nil
+}
+
+// retryWithFreshQueueIfPurged reports whether err is TasksCore rejecting a
+// call keyed by queue's (possibly stale, cached) id because that id has been
+// rotated out by a PurgeQueue — which can only invalidate queuesCache on the
+// gateway process that handled it, so any other gateway process keeps
+// serving the pre-purge Queue out of its own cache until its TTL naturally
+// expires. On that specific NotFound, it drops the stale entry and returns a
+// freshly resolved queue to retry the call against; every other error
+// (including an ordinary NotFound for the actual resource requested, e.g. a
+// genuinely missing task) is passed through unchanged with a nil queue,
+// telling the caller not to retry.
+func (s *MoabApiServerHandler) retryWithFreshQueueIfPurged(ctx context.Context, accountId uint64, queueName string, err error) (*corepb.Queue, error) {
+	if !isNotFound(err) {
+		return nil, nil
+	}
+
+	s.queuesCache.Delete(fmt.Sprintf("%d/%s", accountId, queueName))
+
+	return s.getQueue(ctx, accountId, queueName)
 }
 
 func (s *MoabApiServerHandler) getQueue(ctx context.Context, accountId uint64, queueName string) (*corepb.Queue, error) {

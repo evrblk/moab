@@ -498,6 +498,19 @@ func (m *PaginationToken) MarshalBinary() (data []byte, err error) {
 	return m.MarshalVT()
 }
 
+// PurgeQueueGarbageCollectionRecord
+
+var _ encoding.BinaryMarshaler = (*PurgeQueueGarbageCollectionRecord)(nil)
+var _ encoding.BinaryUnmarshaler = (*PurgeQueueGarbageCollectionRecord)(nil)
+
+func (m *PurgeQueueGarbageCollectionRecord) UnmarshalBinary(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+func (m *PurgeQueueGarbageCollectionRecord) MarshalBinary() (data []byte, err error) {
+	return m.MarshalVT()
+}
+
 // PurgeQueueRequest
 
 var _ encoding.BinaryMarshaler = (*PurgeQueueRequest)(nil)
@@ -732,6 +745,32 @@ func (m *RetryStrategy) MarshalBinary() (data []byte, err error) {
 	return m.MarshalVT()
 }
 
+// RunPurgeQueueGarbageCollectionRequest
+
+var _ encoding.BinaryMarshaler = (*RunPurgeQueueGarbageCollectionRequest)(nil)
+var _ encoding.BinaryUnmarshaler = (*RunPurgeQueueGarbageCollectionRequest)(nil)
+
+func (m *RunPurgeQueueGarbageCollectionRequest) UnmarshalBinary(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+func (m *RunPurgeQueueGarbageCollectionRequest) MarshalBinary() (data []byte, err error) {
+	return m.MarshalVT()
+}
+
+// RunPurgeQueueGarbageCollectionResponse
+
+var _ encoding.BinaryMarshaler = (*RunPurgeQueueGarbageCollectionResponse)(nil)
+var _ encoding.BinaryUnmarshaler = (*RunPurgeQueueGarbageCollectionResponse)(nil)
+
+func (m *RunPurgeQueueGarbageCollectionResponse) UnmarshalBinary(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+func (m *RunPurgeQueueGarbageCollectionResponse) MarshalBinary() (data []byte, err error) {
+	return m.MarshalVT()
+}
+
 // RunQueuesGarbageCollectionRequest
 
 var _ encoding.BinaryMarshaler = (*RunQueuesGarbageCollectionRequest)(nil)
@@ -807,6 +846,32 @@ func (m *ScheduleId) UnmarshalBinary(data []byte) error {
 }
 
 func (m *ScheduleId) MarshalBinary() (data []byte, err error) {
+	return m.MarshalVT()
+}
+
+// SwapQueueIdRequest
+
+var _ encoding.BinaryMarshaler = (*SwapQueueIdRequest)(nil)
+var _ encoding.BinaryUnmarshaler = (*SwapQueueIdRequest)(nil)
+
+func (m *SwapQueueIdRequest) UnmarshalBinary(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+func (m *SwapQueueIdRequest) MarshalBinary() (data []byte, err error) {
+	return m.MarshalVT()
+}
+
+// SwapQueueIdResponse
+
+var _ encoding.BinaryMarshaler = (*SwapQueueIdResponse)(nil)
+var _ encoding.BinaryUnmarshaler = (*SwapQueueIdResponse)(nil)
+
+func (m *SwapQueueIdResponse) UnmarshalBinary(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+func (m *SwapQueueIdResponse) MarshalBinary() (data []byte, err error) {
 	return m.MarshalVT()
 }
 

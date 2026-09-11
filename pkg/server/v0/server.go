@@ -194,6 +194,14 @@ func (s *MoabApiServer) GetTask(ctx context.Context, request *moabpb.GetTaskRequ
 	return s.handler.GetTask(ctx, request, 0, moab.DefaultServiceLimits)
 }
 
+func (s *MoabApiServer) ListTasks(ctx context.Context, request *moabpb.ListTasksRequest) (*moabpb.ListTasksResponse, error) {
+	if err := ValidateListTasksRequest(request); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+	}
+
+	return s.handler.ListTasks(ctx, request, 0, moab.DefaultServiceLimits)
+}
+
 func NewMoabApiServer(moabCoreApiClient coreapis.MoabClientApi) *MoabApiServer {
 	return &MoabApiServer{
 		handler: NewMoabApiServerHandler(moabCoreApiClient),

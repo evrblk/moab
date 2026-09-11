@@ -152,6 +152,28 @@ func (t *queuesTable) Update(txn *store.Txn, queue *corepb.Queue) error {
 		queue)
 }
 
+// SwapId replaces oldQueueId's row with newQueue (a different QueueId, same
+// name) and repoints the names index at the new id. Unlike Delete, this
+// never touches the names index for oldQueueId: the index key is
+// (accountId, name) — it doesn't include the queue id — so the entry this
+// method just repointed to newQueue.Id.QueueId and any stale entry for
+// oldQueueId are the exact same row; deleting "the old one" the way Delete
+// does would clobber the repointed entry instead.
+func (t *queuesTable) SwapId(txn *store.Txn, oldQueueId *corepb.QueueId, newQueue *corepb.Queue) error {
+	if err := t.namesIndex.Set(txn, t.namesIndexPK(newQueue.Id.AccountId, newQueue.Name), newQueue.Id.QueueId); err != nil {
+		return err
+	}
+
+	if err := t.table.Set(txn,
+		utils.ConcatBytes(t.tablePK(newQueue.Id.AccountId), t.tableSK(newQueue.Id.QueueId)),
+		newQueue); err != nil {
+		return err
+	}
+
+	return t.table.Delete(txn,
+		utils.ConcatBytes(t.tablePK(oldQueueId.AccountId), t.tableSK(oldQueueId.QueueId)))
+}
+
 // Delete removes a queue row and its names-index entry. Deleting a queue
 // that no longer exists in one of the two places is not an error.
 func (t *queuesTable) Delete(txn *store.Txn, queue *corepb.Queue) error {

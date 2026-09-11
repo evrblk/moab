@@ -344,7 +344,8 @@ func TestCore_DeleteQueue(t *testing.T) {
 	queue := createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue", 20, now)
 	createSchedule(t, core, accountId, "test_queue", "test_schedule", now)
 
-	deleteQueue(t, core, accountId, "test_queue")
+	deleteResp := deleteQueue(t, core, accountId, "test_queue")
+	require.Equal(t, queue.Id, deleteResp.QueueId)
 
 	// Get this newly deleted queue
 	getErr := getQueueWithError(t, core, queue.Id)
@@ -358,6 +359,69 @@ func TestCore_DeleteQueue(t *testing.T) {
 
 	// Delete nonexistent queue
 	appErr := deleteQueueWithError(t, core, rand.Uint64(), "random_name")
+	require.Equal(t, mrpc.NotFound, appErr.Code)
+}
+
+// TestCore_SwapQueueId pins down PurgeQueue's building block: the queue
+// keeps its name, settings, and schedules, but is reachable under a brand
+// new id afterward, while the old id stops resolving to anything.
+func TestCore_SwapQueueId(t *testing.T) {
+	core := newQueuesCore(t)
+
+	now := time.Now()
+	accountId := rand.Uint64()
+
+	queue := createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue", 20, now)
+	createSchedule(t, core, accountId, "test_queue", "test_schedule", now)
+
+	newQueueId := rand.Uint64()
+	resp := swapQueueId(t, core, accountId, "test_queue", newQueueId, now.Add(time.Second))
+
+	require.EqualValues(t, newQueueId, resp.Queue.Id.QueueId)
+	require.Equal(t, queue.Id, resp.OldQueueId)
+	require.Equal(t, "test_queue", resp.Queue.Name)
+	require.Equal(t, queue.Description, resp.Queue.Description)
+	require.Equal(t, queue.DequeuingSettings.MaxInProgressTasks, resp.Queue.DequeuingSettings.MaxInProgressTasks)
+	require.Equal(t, queue.Version+1, resp.Queue.Version)
+
+	// The old id resolves to nothing anymore...
+	getErr := getQueueWithError(t, core, queue.Id)
+	require.Equal(t, mrpc.NotFound, getErr.Code)
+
+	// ...but the name still does, now pointing at the new id.
+	byName := getQueueByName(t, core, accountId, "test_queue")
+	require.EqualValues(t, newQueueId, byName.Id.QueueId)
+
+	// The schedule created before the swap moved with it: reachable under
+	// the new id, gone from the old one.
+	schedulesAtNewId := listSchedules(t, core, resp.Queue.Id, nil, 0)
+	require.Len(t, schedulesAtNewId.Schedules, 1)
+	require.Equal(t, "test_schedule", schedulesAtNewId.Schedules[0].Name)
+	require.EqualValues(t, newQueueId, schedulesAtNewId.Schedules[0].Id.QueueId)
+
+	schedulesAtOldId := listSchedules(t, core, queue.Id, nil, 0)
+	require.Len(t, schedulesAtOldId.Schedules, 0)
+}
+
+func TestCore_SwapQueueIdIDCollision(t *testing.T) {
+	core := newQueuesCore(t)
+
+	now := time.Now()
+	accountId := rand.Uint64()
+
+	createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue_1", 20, now)
+	other := createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue_2", 20, now)
+
+	// Rotating test_queue_1 onto test_queue_2's existing id must fail rather
+	// than silently overwrite it.
+	appErr := swapQueueIdWithError(t, core, accountId, "test_queue_1", other.Id.QueueId, now)
+	require.Equal(t, mrpc.IDCollision, appErr.Code)
+}
+
+func TestCore_SwapQueueIdNonexistentQueue(t *testing.T) {
+	core := newQueuesCore(t)
+
+	appErr := swapQueueIdWithError(t, core, rand.Uint64(), "does_not_exist", rand.Uint64(), time.Now())
 	require.Equal(t, mrpc.NotFound, appErr.Code)
 }
 
@@ -797,7 +861,7 @@ func updateQueueWithError(t *testing.T, core *Core, accountId uint64, queueName 
 	return resp.ApplicationError
 }
 
-func deleteQueue(t *testing.T, core *Core, accountId uint64, queueName string) {
+func deleteQueue(t *testing.T, core *Core, accountId uint64, queueName string) *corepb.DeleteQueueResponse {
 	t.Helper()
 
 	resp, err := core.DeleteQueue(&coreapis.DeleteQueueRequest{
@@ -807,6 +871,9 @@ func deleteQueue(t *testing.T, core *Core, accountId uint64, queueName string) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Nil(t, resp.ApplicationError)
+	require.NotNil(t, resp.Payload)
+
+	return resp.Payload
 }
 
 func deleteQueueWithError(t *testing.T, core *Core, accountId uint64, queueName string) *mrpc.Error {
@@ -814,6 +881,53 @@ func deleteQueueWithError(t *testing.T, core *Core, accountId uint64, queueName 
 
 	resp, err := core.DeleteQueue(&coreapis.DeleteQueueRequest{
 		Payload: &corepb.DeleteQueueRequest{AccountId: accountId, QueueName: queueName},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.ApplicationError)
+
+	return resp.ApplicationError
+}
+
+func getQueueByName(t *testing.T, core *Core, accountId uint64, queueName string) *corepb.Queue {
+	t.Helper()
+
+	resp, err := core.GetQueueByName(&coreapis.GetQueueByNameRequest{
+		Payload: &corepb.GetQueueByNameRequest{AccountId: accountId, QueueName: queueName},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.ApplicationError)
+	require.NotNil(t, resp.Payload)
+	require.NotNil(t, resp.Payload.Queue)
+
+	return resp.Payload.Queue
+}
+
+func swapQueueId(t *testing.T, core *Core, accountId uint64, queueName string, newQueueId uint64, now time.Time) *corepb.SwapQueueIdResponse {
+	t.Helper()
+
+	resp, err := core.SwapQueueId(&coreapis.SwapQueueIdRequest{
+		Payload: &corepb.SwapQueueIdRequest{AccountId: accountId, QueueName: queueName, NewQueueId: newQueueId},
+		Now:     now.UnixNano(),
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.ApplicationError)
+	require.NotNil(t, resp.Payload)
+
+	return resp.Payload
+}
+
+func swapQueueIdWithError(t *testing.T, core *Core, accountId uint64, queueName string, newQueueId uint64, now time.Time) *mrpc.Error {
+	t.Helper()
+
+	resp, err := core.SwapQueueId(&coreapis.SwapQueueIdRequest{
+		Payload: &corepb.SwapQueueIdRequest{AccountId: accountId, QueueName: queueName, NewQueueId: newQueueId},
+		Now:     now.UnixNano(),
 	})
 
 	require.NoError(t, err)

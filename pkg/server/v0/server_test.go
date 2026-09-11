@@ -122,6 +122,95 @@ func TestDeleteQueueValidation(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestDeleteQueueMarksTasksForAsynchronousCleanup pins down that DeleteQueue
+// no longer just orphans a queue's tasks forever: it marks them for the same
+// asynchronous purge PurgeQueue uses, so an Enqueue that still lands on the
+// deleted id (from this same gateway, right after DeleteQueue — the cache
+// entry DeleteQueue itself invalidates) is rejected immediately rather than
+// silently writing into a queue nothing will ever look at again.
+func TestDeleteQueueMarksTasksForAsynchronousCleanup(t *testing.T) {
+	server := setupMoabApiServer()
+	ctx := context.Background()
+
+	_, err := server.CreateQueue(ctx, &moabpb.CreateQueueRequest{
+		Name:                      "testqueue",
+		KeepaliveTimeoutInSeconds: 5,
+		ExpiresInSeconds:          86400,
+	})
+	require.NoError(t, err)
+
+	_, err = server.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries:   []*moabpb.EnqueueRequestEntry{{Payload: []byte("before delete")}},
+	})
+	require.NoError(t, err)
+
+	_, err = server.DeleteQueue(ctx, &moabpb.DeleteQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+
+	_, err = server.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries:   []*moabpb.EnqueueRequestEntry{{Payload: []byte("after delete")}},
+	})
+	require.Error(t, err)
+
+	// A brand new queue under the same name is unaffected: it gets its own
+	// fresh id and starts uncounted, not haunted by the deleted queue's
+	// leftover tasks.
+	_, err = server.CreateQueue(ctx, &moabpb.CreateQueueRequest{
+		Name:                      "testqueue",
+		KeepaliveTimeoutInSeconds: 5,
+		ExpiresInSeconds:          86400,
+	})
+	require.NoError(t, err)
+
+	getResp, err := server.GetQueue(ctx, &moabpb.GetQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+	require.EqualValues(t, 0, getResp.Stats.EnqueuedTasksCount)
+}
+
+// TestDeleteQueueOnAnotherGatewayRetriesStaleCache mirrors
+// TestPurgeQueueOnAnotherGatewayRetriesStaleCache for DeleteQueue: two
+// independent MoabApiServer instances (independent queuesCache each) share
+// one cluster backend, modeling two gateway processes. Unlike a purge, a
+// delete has no fresh id to retry onto — the queue is gone for good — so
+// the correct outcome for gatewayB's stale-cache Enqueue is an error, not a
+// silent write into an id nothing will ever read from again.
+func TestDeleteQueueOnAnotherGatewayRetriesStaleCache(t *testing.T) {
+	client := setupMoabCoreApiClient()
+	gatewayA := NewMoabApiServer(client)
+	gatewayB := NewMoabApiServer(client)
+	ctx := context.Background()
+
+	_, err := gatewayA.CreateQueue(ctx, &moabpb.CreateQueueRequest{
+		Name:                      "testqueue",
+		KeepaliveTimeoutInSeconds: 5,
+		ExpiresInSeconds:          86400,
+	})
+	require.NoError(t, err)
+
+	// Warms gatewayB's queuesCache with the queue and its (soon to be
+	// deleted) id.
+	_, err = gatewayB.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries:   []*moabpb.EnqueueRequestEntry{{Payload: []byte("before delete, via gatewayB")}},
+	})
+	require.NoError(t, err)
+
+	// gatewayA deletes the queue. It only invalidates its own cache.
+	_, err = gatewayA.DeleteQueue(ctx, &moabpb.DeleteQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+
+	// gatewayB still has the pre-delete queue cached. Its next Enqueue must
+	// fail — not silently succeed into an id that's being asynchronously
+	// drained and that no name will ever resolve to again.
+	_, err = gatewayB.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries:   []*moabpb.EnqueueRequestEntry{{Payload: []byte("after delete, via gatewayB's stale cache")}},
+	})
+	require.Error(t, err)
+}
+
 func TestListQueuesValidation(t *testing.T) {
 	server := setupMoabApiServer()
 	ctx := context.Background()
@@ -478,6 +567,119 @@ func TestPurgeQueueValidation(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestPurgeQueueRotatesQueueIdInsteadOfDeletingTasksSynchronously exercises
+// PurgeQueue end to end through the server: rotating the queue's internal id
+// makes its pre-purge tasks unreachable through the API immediately (GetTask
+// resolves through the queue's *current* id), without needing the async GC
+// worker to have run yet, while a task enqueued right after the purge is
+// completely unaffected and starts counting from a clean slate.
+func TestPurgeQueueRotatesQueueIdInsteadOfDeletingTasksSynchronously(t *testing.T) {
+	server := setupMoabApiServer()
+	ctx := context.Background()
+
+	_, err := server.CreateQueue(ctx, &moabpb.CreateQueueRequest{
+		Name:                      "testqueue",
+		KeepaliveTimeoutInSeconds: 5,
+		ExpiresInSeconds:          86400,
+	})
+	require.NoError(t, err)
+
+	enqueueResp, err := server.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries: []*moabpb.EnqueueRequestEntry{
+			{Payload: []byte("before purge")},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, enqueueResp.Tasks, 1)
+	oldTaskId := enqueueResp.Tasks[0].Id
+
+	_, err = server.PurgeQueue(ctx, &moabpb.PurgeQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+
+	// The pre-purge task is unreachable right away, before any async GC has
+	// had a chance to run: GetTask resolves "testqueue" to its new id, under
+	// which this task id was never enqueued.
+	_, err = server.GetTask(ctx, &moabpb.GetTaskRequest{
+		QueueName: "testqueue",
+		TaskId:    oldTaskId,
+	})
+	require.Error(t, err)
+
+	// A brand new task enqueued right after the purge is unaffected, and
+	// statistics start clean rather than inheriting anything from the old id.
+	afterResp, err := server.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries: []*moabpb.EnqueueRequestEntry{
+			{Payload: []byte("after purge")},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, afterResp.Tasks, 1)
+
+	getResp, err := server.GetQueue(ctx, &moabpb.GetQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, getResp.Stats.EnqueuedTasksCount)
+
+	_, err = server.GetTask(ctx, &moabpb.GetTaskRequest{
+		QueueName: "testqueue",
+		TaskId:    afterResp.Tasks[0].Id,
+	})
+	require.NoError(t, err)
+}
+
+// TestPurgeQueueOnAnotherGatewayRetriesStaleCache is the scenario a single
+// process can't exercise: PurgeQueue's own queuesCache invalidation only
+// covers the gateway that handled the call. This spins up two independent
+// MoabApiServer instances (independent queuesCache each) sharing one
+// cluster backend to model two gateway processes, warms gatewayB's cache
+// with the pre-purge queue, purges through gatewayA, and checks that
+// gatewayB's very next Enqueue still succeeds — transparently, via
+// TasksCore's NotFound-on-purged-id plus the handler's retry — landing on
+// the new id instead of the one being asynchronously drained.
+func TestPurgeQueueOnAnotherGatewayRetriesStaleCache(t *testing.T) {
+	client := setupMoabCoreApiClient()
+	gatewayA := NewMoabApiServer(client)
+	gatewayB := NewMoabApiServer(client)
+	ctx := context.Background()
+
+	_, err := gatewayA.CreateQueue(ctx, &moabpb.CreateQueueRequest{
+		Name:                      "testqueue",
+		KeepaliveTimeoutInSeconds: 5,
+		ExpiresInSeconds:          86400,
+	})
+	require.NoError(t, err)
+
+	// Warms gatewayB's queuesCache with the pre-purge queue and its id.
+	_, err = gatewayB.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries:   []*moabpb.EnqueueRequestEntry{{Payload: []byte("before purge, via gatewayB")}},
+	})
+	require.NoError(t, err)
+
+	// gatewayA purges the queue. It only invalidates its own cache — it has
+	// no way to reach into gatewayB's.
+	_, err = gatewayA.PurgeQueue(ctx, &moabpb.PurgeQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+
+	// gatewayB still has the pre-purge queue cached; its next Enqueue must
+	// still land correctly, by retrying against a freshly resolved queue
+	// once TasksCore rejects the stale id.
+	resp, err := gatewayB.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries:   []*moabpb.EnqueueRequestEntry{{Payload: []byte("after purge, via gatewayB's stale cache")}},
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Tasks, 1)
+
+	// Confirms it landed under the new id, not the one being drained: stats
+	// (fetched via gatewayA, unrelated to which gateway wrote it) show
+	// exactly the one post-purge task.
+	getResp, err := gatewayA.GetQueue(ctx, &moabpb.GetQueueRequest{QueueName: "testqueue"})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, getResp.Stats.EnqueuedTasksCount)
+}
+
 func TestGetTaskValidation(t *testing.T) {
 	server := setupMoabApiServer()
 	ctx := context.Background()
@@ -516,6 +718,71 @@ func TestGetTaskValidation(t *testing.T) {
 	_, err = server.GetTask(ctx, &moabpb.GetTaskRequest{
 		QueueName: "testqueue",
 		TaskId:    "",
+	})
+	require.Error(t, err)
+}
+
+func TestListTasksValidation(t *testing.T) {
+	server := setupMoabApiServer()
+	ctx := context.Background()
+
+	_, err := server.CreateQueue(ctx, &moabpb.CreateQueueRequest{
+		Name:                      "testqueue",
+		KeepaliveTimeoutInSeconds: 5,
+		ExpiresInSeconds:          86400,
+	})
+	require.NoError(t, err)
+
+	enqueueResp, err := server.Enqueue(ctx, &moabpb.EnqueueRequest{
+		QueueName: "testqueue",
+		Entries: []*moabpb.EnqueueRequestEntry{
+			{Payload: []byte("payload-1")},
+			{Payload: []byte("payload-2")},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, enqueueResp.Tasks, 2)
+
+	// valid request - unfiltered lists both
+	resp, err := server.ListTasks(ctx, &moabpb.ListTasksRequest{
+		QueueName: "testqueue",
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Tasks, 2)
+	require.Equal(t, moabpb.TaskState_TASK_STATE_ENQUEUED, resp.Tasks[0].State)
+
+	// valid request - filtered by state
+	dequeueResp, err := server.Dequeue(ctx, &moabpb.DequeueRequest{
+		QueueName: "testqueue",
+		BatchSize: 2,
+	})
+	require.NoError(t, err)
+	require.Len(t, dequeueResp.Tasks, 2)
+
+	inProgressResp, err := server.ListTasks(ctx, &moabpb.ListTasksRequest{
+		QueueName: "testqueue",
+		State:     moabpb.TaskState_TASK_STATE_IN_PROGRESS,
+	})
+	require.NoError(t, err)
+	require.Len(t, inProgressResp.Tasks, 2)
+
+	deadResp, err := server.ListTasks(ctx, &moabpb.ListTasksRequest{
+		QueueName: "testqueue",
+		State:     moabpb.TaskState_TASK_STATE_DEAD,
+	})
+	require.NoError(t, err)
+	require.Empty(t, deadResp.Tasks)
+
+	// invalid request - invalid queue name
+	_, err = server.ListTasks(ctx, &moabpb.ListTasksRequest{
+		QueueName: "invalid@queue",
+	})
+	require.Error(t, err)
+
+	// invalid request - unrecognized state
+	_, err = server.ListTasks(ctx, &moabpb.ListTasksRequest{
+		QueueName: "testqueue",
+		State:     moabpb.TaskState(99),
 	})
 	require.Error(t, err)
 }
@@ -748,7 +1015,13 @@ func TestListSchedulesValidation(t *testing.T) {
 	require.Error(t, err)
 }
 
-func setupMoabApiServer() *MoabApiServer {
+// setupMoabCoreApiClient builds the shared cluster-side backend (an
+// in-memory Badger store plus MoabQueues/MoabTasks cores). Every
+// MoabApiServer built from the same client behaves like an independent
+// gateway process talking to the same cluster: each gets its own handler
+// and its own queuesCache, but they all see the same underlying queue/task
+// state.
+func setupMoabCoreApiClient() coreapis.MoabClientApi {
 	dataStore, err := store.NewBadgerInMemoryStore()
 	if err != nil {
 		log.Fatalf("failed to create data store: %v", err)
@@ -771,7 +1044,9 @@ func setupMoabApiServer() *MoabApiServer {
 			return tasks.NewCore(dataStore, replicaPrefix(shardId), lowerBound, upperBound)
 		},
 	}
-	moabCoreApiClient := coreapis.NewMoabNonclusteredStub(16, coresFactory)
+	return coreapis.NewMoabNonclusteredStub(16, coresFactory)
+}
 
-	return NewMoabApiServer(moabCoreApiClient)
+func setupMoabApiServer() *MoabApiServer {
+	return NewMoabApiServer(setupMoabCoreApiClient())
 }

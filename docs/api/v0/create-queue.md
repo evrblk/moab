@@ -6,9 +6,14 @@ Queue names must be unique within a given account and cannot be changed later. V
 characters, hyphens and underscores.
 
 There is a maximum limit on the number of queues an account can have, this method will return an error if the limit is
-reached. See [Service Limits](/docs/moab/limits).
+reached.
 
 ## Request
+
+* `keepalive_timeout_in_seconds` is required, between [5; 60]
+* `expires_in_seconds` is optional, between [5; 1209600], default 1209600 (14 days)
+* `dead_letter_queue_config.max_size` is optional, default 0 (unlimited)
+* `dead_letter_queue_config.retention_period_in_seconds` is optional, between [5; 1209600], default 1209600 (14 days)
 
 ```json
 {
@@ -19,7 +24,7 @@ reached. See [Service Limits](/docs/moab/limits).
   "retry_strategy": {
   },
   "dequeuing_settings": {
-    "max_inflight_tasks": 0,
+    "max_in_progress_tasks": 0,
     "rate_limiting": { // 1000 tasks per second
       "max_tokens": 1000,
       "interval": 1,
@@ -37,6 +42,9 @@ reached. See [Service Limits](/docs/moab/limits).
 
 ## Response
 
+* Returns `AlreadyExists` if a queue with the same name exists in the account.
+* Returns `ResourceExhausted` if the account has reached its queue quota.
+
 ```json
 {
   "queue": {
@@ -46,11 +54,11 @@ reached. See [Service Limits](/docs/moab/limits).
     "updated_at": 1695826539671432000,
     "version": 1,
     "keepalive_timeout_in_seconds": 15,
-    "expires_in_seconds": 1209600, // default 14 days
+    "expires_in_seconds": 1209600,
     "retry_strategy": {
     },
     "dequeuing_settings": {
-      "max_inflight_tasks": 0,
+      "max_in_progress_tasks": 0,
       "rate_limiting": {
         "max_tokens": 1000,
         "interval": 1,
@@ -66,47 +74,3 @@ reached. See [Service Limits](/docs/moab/limits).
   }
 }
 ```
-
-__CreateQueueRequest__
-
-| Parameter                    | Type                  |                                                 |
-|------------------------------|-----------------------|-------------------------------------------------|
-| name                         | String                | Required, max 128 chars, `/[-_0-9a-zA-Z]*/`     |
-| description                  | String                | Optional, max 1024 chars, default empty         |
-| keepalive_timeout_in_seconds | Integer               | Required, between [5; 60]                       |
-| expires_in_seconds           | Integer               | Optional, between [5; 1209600], default 1209600 |
-| retry_strategy               | RetryStrategy         | Optional, default no retries                    |
-| dequeuing_settings           | DequeuingSettings     | Optional                                        |
-| dead_letter_queue_config     | DeadLetterQueueConfig | Optional                                        |
-
-__RetryStrategy__
-
-| Parameter                    | Type               |                                         |
-|------------------------------|--------------------|-----------------------------------------|
-| name                         | String             | Required, max 128 chars                 |
-| description                  | String             | Optional, max 1024 chars, default empty |
-
-__DequeuingSettings__
-
-| Parameter            | Type                     |                             |
-|----------------------|--------------------------|-----------------------------|
-| max_inflight_tasks   | Integer                  | Optional, default unlimited |
-| rate_limiting        | TokenBucketRateLimiting  | Optional, default empty     |
-| dequeuing_paused     | Boolean                  | Optional, default false     |
-
-__TokenBucketRateLimiting__
-
-| Parameter            | Type      |                                           |
-|----------------------|-----------|-------------------------------------------|
-| max_tokens           | Integer   | Required                                  |
-| interval             | Integer   | Required                                  |
-| interval_unit        | Enum      | Required, [`SECONDS`, `MINUTES`, `HOURS`] |
-
-
-__DeadLetterQueueConfig__
-
-| Parameter                    | Type               |                                                   |
-|------------------------------|--------------------|---------------------------------------------------|
-| enable                       | Boolean            | Optional, default false                           |
-| max_size                     | Integer            | Optional, default 0 (unlimited)                   |
-| retention_period_in_seconds  | Integer            | Optional, between [5; 1209600], default 1209600   |

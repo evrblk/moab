@@ -90,6 +90,12 @@ func (r *ListSchedulesRequest) ShardKey() cluster.ShardKey {
 	return sharding.ByAccount(r.QueueId.AccountId)
 }
 
+// ListTasksRequest
+
+func (r *ListTasksRequest) ShardKey() cluster.ShardKey {
+	return sharding.ByAccountAndQueue(r.QueueId.AccountId, r.QueueId.QueueId)
+}
+
 // PurgeQueueRequest
 
 func (r *PurgeQueueRequest) ShardKey() cluster.ShardKey {
@@ -106,6 +112,12 @@ func (r *ReportStatusRequest) ShardKey() cluster.ShardKey {
 
 func (r *RestartTasksRequest) ShardKey() cluster.ShardKey {
 	return sharding.ByAccountAndQueue(r.QueueId.AccountId, r.QueueId.QueueId)
+}
+
+// SwapQueueIdRequest
+
+func (r *SwapQueueIdRequest) ShardKey() cluster.ShardKey {
+	return sharding.ByAccount(r.AccountId)
 }
 
 // UpdateQueueRequest

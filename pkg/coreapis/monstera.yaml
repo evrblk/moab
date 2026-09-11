@@ -47,6 +47,9 @@ cores:
       - name: RunQueuesGarbageCollection
         method_number: 8
         sharded: false
+      - name: SwapQueueId
+        method_number: 9
+        sharded: true
 
   - name: MoabTasks
     read_methods:
@@ -55,6 +58,9 @@ cores:
         sharded: true
       - name: GetStatistics
         method_number: 2
+        sharded: true
+      - name: ListTasks
+        method_number: 3
         sharded: true
     update_methods:
       - name: Enqueue
@@ -77,6 +83,9 @@ cores:
         sharded: true
       - name: RunTasksGarbageCollection
         method_number: 7
+        sharded: false
+      - name: RunPurgeQueueGarbageCollection
+        method_number: 8
         sharded: false
 
 stubs:

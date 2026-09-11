@@ -2,15 +2,24 @@
 
 Lists the schedules for a given queue, paginated.
 
+Read-only and safe to retry.
+
 ## Request
+
+* Leave `pagination_token` empty for the first page.
+* `limit` sets the number of entries per page.
 
 ```json
 {
-  "queue_name": "SquirrelQueue"
+  "queue_name": "SquirrelQueue",
+  "pagination_token": "",
+  "limit": 100
 }
 ```
 
 ## Response
+
+* Returns `NotFound` if the queue does not exist.
 
 ```json
 {
@@ -36,11 +45,3 @@ Lists the schedules for a given queue, paginated.
   "previous_pagination_token": ""
 }
 ```
-
-__ListSchedulesRequest__
-
-| Parameter        | Type                |                                                 |
-|------------------|---------------------|-------------------------------------------------|
-| queue_name       | String              | Required, max 128 chars, `/[-_0-9a-zA-Z]*/`     |
-| pagination_token | String              | Optional, base64-encoded token from a previous response |
-| limit            | Int32               | Optional, max page size, defaults to 100, capped at 250 |

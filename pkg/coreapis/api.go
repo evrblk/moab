@@ -38,10 +38,14 @@ type ReportSchedulesStatusRequest = mrpc.UpdateUnshardedRequest[*corepb.ReportSc
 type ReportSchedulesStatusResponse = mrpc.UpdateResponse[*corepb.ReportSchedulesStatusResponse]
 type RunQueuesGarbageCollectionRequest = mrpc.UpdateUnshardedRequest[*corepb.RunQueuesGarbageCollectionRequest]
 type RunQueuesGarbageCollectionResponse = mrpc.UpdateResponse[*corepb.RunQueuesGarbageCollectionResponse]
+type SwapQueueIdRequest = mrpc.UpdateRequest[*corepb.SwapQueueIdRequest]
+type SwapQueueIdResponse = mrpc.UpdateResponse[*corepb.SwapQueueIdResponse]
 type GetTaskRequest = mrpc.ReadRequest[*corepb.GetTaskRequest]
 type GetTaskResponse = mrpc.ReadResponse[*corepb.GetTaskResponse]
 type GetStatisticsRequest = mrpc.ReadRequest[*corepb.GetStatisticsRequest]
 type GetStatisticsResponse = mrpc.ReadResponse[*corepb.GetStatisticsResponse]
+type ListTasksRequest = mrpc.ReadRequest[*corepb.ListTasksRequest]
+type ListTasksResponse = mrpc.ReadResponse[*corepb.ListTasksResponse]
 type EnqueueRequest = mrpc.UpdateRequest[*corepb.EnqueueRequest]
 type EnqueueResponse = mrpc.UpdateResponse[*corepb.EnqueueResponse]
 type DequeueRequest = mrpc.UpdateRequest[*corepb.DequeueRequest]
@@ -56,6 +60,8 @@ type PurgeQueueRequest = mrpc.UpdateRequest[*corepb.PurgeQueueRequest]
 type PurgeQueueResponse = mrpc.UpdateResponse[*corepb.PurgeQueueResponse]
 type RunTasksGarbageCollectionRequest = mrpc.UpdateUnshardedRequest[*corepb.RunTasksGarbageCollectionRequest]
 type RunTasksGarbageCollectionResponse = mrpc.UpdateResponse[*corepb.RunTasksGarbageCollectionResponse]
+type RunPurgeQueueGarbageCollectionRequest = mrpc.UpdateUnshardedRequest[*corepb.RunPurgeQueueGarbageCollectionRequest]
+type RunPurgeQueueGarbageCollectionResponse = mrpc.UpdateResponse[*corepb.RunPurgeQueueGarbageCollectionResponse]
 
 type MoabClientApi interface {
 	GetQueue(ctx context.Context, req *corepb.GetQueueRequest) (*corepb.GetQueueResponse, error)
@@ -72,9 +78,11 @@ type MoabClientApi interface {
 	DeleteSchedule(ctx context.Context, req *corepb.DeleteScheduleRequest) (*corepb.DeleteScheduleResponse, error)
 	ReportSchedulesStatus(ctx context.Context, req *corepb.ReportSchedulesStatusRequest, shardId string) (*corepb.ReportSchedulesStatusResponse, error)
 	RunQueuesGarbageCollection(ctx context.Context, req *corepb.RunQueuesGarbageCollectionRequest, shardId string) (*corepb.RunQueuesGarbageCollectionResponse, error)
+	SwapQueueId(ctx context.Context, req *corepb.SwapQueueIdRequest) (*corepb.SwapQueueIdResponse, error)
 
 	GetTask(ctx context.Context, req *corepb.GetTaskRequest) (*corepb.GetTaskResponse, error)
 	GetStatistics(ctx context.Context, req *corepb.GetStatisticsRequest) (*corepb.GetStatisticsResponse, error)
+	ListTasks(ctx context.Context, req *corepb.ListTasksRequest) (*corepb.ListTasksResponse, error)
 	Enqueue(ctx context.Context, req *corepb.EnqueueRequest) (*corepb.EnqueueResponse, error)
 	Dequeue(ctx context.Context, req *corepb.DequeueRequest) (*corepb.DequeueResponse, error)
 	ReportStatus(ctx context.Context, req *corepb.ReportStatusRequest) (*corepb.ReportStatusResponse, error)
@@ -82,6 +90,7 @@ type MoabClientApi interface {
 	RestartTasks(ctx context.Context, req *corepb.RestartTasksRequest) (*corepb.RestartTasksResponse, error)
 	PurgeQueue(ctx context.Context, req *corepb.PurgeQueueRequest) (*corepb.PurgeQueueResponse, error)
 	RunTasksGarbageCollection(ctx context.Context, req *corepb.RunTasksGarbageCollectionRequest, shardId string) (*corepb.RunTasksGarbageCollectionResponse, error)
+	RunPurgeQueueGarbageCollection(ctx context.Context, req *corepb.RunPurgeQueueGarbageCollectionRequest, shardId string) (*corepb.RunPurgeQueueGarbageCollectionResponse, error)
 
 	ListShards(applicationName string) ([]string, error)
 }
@@ -103,6 +112,7 @@ type MoabQueuesCoreApi interface {
 	DeleteSchedule(req *DeleteScheduleRequest) (*DeleteScheduleResponse, error)
 	ReportSchedulesStatus(req *ReportSchedulesStatusRequest) (*ReportSchedulesStatusResponse, error)
 	RunQueuesGarbageCollection(req *RunQueuesGarbageCollectionRequest) (*RunQueuesGarbageCollectionResponse, error)
+	SwapQueueId(req *SwapQueueIdRequest) (*SwapQueueIdResponse, error)
 }
 
 type MoabTasksCoreApi interface {
@@ -111,6 +121,7 @@ type MoabTasksCoreApi interface {
 	Close()
 	GetTask(req *GetTaskRequest) (*GetTaskResponse, error)
 	GetStatistics(req *GetStatisticsRequest) (*GetStatisticsResponse, error)
+	ListTasks(req *ListTasksRequest) (*ListTasksResponse, error)
 	Enqueue(req *EnqueueRequest) (*EnqueueResponse, error)
 	Dequeue(req *DequeueRequest) (*DequeueResponse, error)
 	ReportStatus(req *ReportStatusRequest) (*ReportStatusResponse, error)
@@ -118,4 +129,5 @@ type MoabTasksCoreApi interface {
 	RestartTasks(req *RestartTasksRequest) (*RestartTasksResponse, error)
 	PurgeQueue(req *PurgeQueueRequest) (*PurgeQueueResponse, error)
 	RunTasksGarbageCollection(req *RunTasksGarbageCollectionRequest) (*RunTasksGarbageCollectionResponse, error)
+	RunPurgeQueueGarbageCollection(req *RunPurgeQueueGarbageCollectionRequest) (*RunPurgeQueueGarbageCollectionResponse, error)
 }

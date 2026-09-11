@@ -1,7 +1,7 @@
 # Retries
 
 If a worker crashes or is not able to report the status on time for any reason, a task will be moved to `ENQUEUED` state,
-removed from Inflight index, and added to the main index, so that it can be dequeued again. Counter `attempts`
+removed from InProgress index, and added to the main index, so that it can be dequeued again. Counter `attempts`
 will be incremented on the task.
 
 ![Retries](/docs/images/retries-1.png)

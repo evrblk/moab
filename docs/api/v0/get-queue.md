@@ -1,6 +1,8 @@
 # GetQueue
 
-Returns a queue by name along with its current statistics. Use `ListSchedules` to get the schedules for a given queue.
+Returns a queue by name along with its current statistics.
+
+Read-only and safe to retry.
 
 ## Request
 
@@ -11,6 +13,8 @@ Returns a queue by name along with its current statistics. Use `ListSchedules` t
 ```
 
 ## Response
+
+* Returns `NotFound` if the queue does not exist.
 
 ```json
 {
@@ -25,7 +29,7 @@ Returns a queue by name along with its current statistics. Use `ListSchedules` t
     "retry_strategy": {
     },
     "dequeuing_settings": {
-      "max_inflight_tasks": 0,
+      "max_in_progress_tasks": 0,
       "rate_limiting": {
         "max_tokens": 1000,
         "interval": 1,
@@ -41,17 +45,13 @@ Returns a queue by name along with its current statistics. Use `ListSchedules` t
   },
   "stats": {
     "enqueued_tasks_count": 15230, // number of tasks waiting to be picked up
-    "inflight_tasks_count": 10, // number of tasks currenly inflight
+    "in_progress_tasks_count": 10, // number of tasks currenly in-progress
     "dead_tasks_count": 15, // number of tasks ever died during the lifetime of this queue
+    "processed_tasks_count": 1832043, // number of tasks ever processed through this queue
+    "expired_tasks_count": 5, // number of tasks that were removed as expired
     // The oldest task out of this 15230 has been ready to be picked up for 16.5 seconds (in nanoseconds),
     // but it is still in the queue.
     "age_of_oldest_enqueued_task": 16498185433
   }
 }
 ```
-
-__GetQueueRequest__
-
-| Parameter       | Type                |                                                 |
-|-----------------|---------------------|-------------------------------------------------|
-| queue_name      | String              | Required, max 128 chars, `/[-_0-9a-zA-Z]*/`     |

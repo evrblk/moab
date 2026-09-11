@@ -185,6 +185,12 @@ message GetTaskResponse {
   Task task = 1;
 }
 
+// PurgeQueueRequest names a queue id whose tasks should all be deleted,
+// regardless of state. queue_id must already be unreachable from the
+// queue's name by the time this is called (the server handler ensures this
+// by rotating the queue onto a fresh id via QueuesCore.SwapQueueId first) —
+// otherwise a task enqueued after this call could be swept up by the same
+// purge.
 message PurgeQueueRequest {
   QueueId queue_id = 1;
 }
@@ -193,10 +199,37 @@ message PurgeQueueResponse {
 
 }
 
+// PurgeQueueGarbageCollectionRecord marks a purged queue id's tasks for
+// asynchronous deletion. PurgeQueue creates one of these instead of deleting
+// the queue's tasks synchronously, so purging stays O(1) regardless of how
+// many tasks the queue holds; RunPurgeQueueGarbageCollection drains them in
+// bounded batches.
+message PurgeQueueGarbageCollectionRecord {
+  QueueId queue_id = 1;
+}
+
+message RunPurgeQueueGarbageCollectionRequest {
+  // How many pending GC records (purged queue ids) to process in this call.
+  int32 gc_records_page_size = 1;
+  // How many tasks to delete per GC record in this call.
+  int32 gc_record_tasks_page_size = 2;
+  // Total task deletions allowed across all GC records in this call.
+  int32 max_visited_tasks = 3;
+}
+
+message RunPurgeQueueGarbageCollectionResponse {
+
+}
+
 message ListTasksRequest {
   QueueId queue_id = 1;
   PaginationToken pagination_token = 2;
   int32 limit = 3;
+  // TASK_STATE_INVALID (unset) lists tasks in every state, scanning the
+  // primary table directly. A specific state instead scans that state's own
+  // index (queueIndex/inProgressIndex/deadTasksIndex), ordered by that
+  // index's own sort key rather than by task id.
+  TaskState state = 4;
 }
 
 message ListTasksResponse {

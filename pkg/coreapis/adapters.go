@@ -295,6 +295,33 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 			}
 			rpcResp.Data = methodRespBytes
 		}
+	case 9:
+		rpcMethodsTotal.WithLabelValues(a.nodeId, "MoabQueues", "SwapQueueId", a.shardId, a.replicaId).Inc()
+		defer measureSince(rpcMethodDuration.WithLabelValues(a.nodeId, "MoabQueues", "SwapQueueId", a.shardId, a.replicaId), t1)
+
+		methodReq := corepb.SwapQueueIdRequest{}
+		err := methodReq.UnmarshalBinary(rpcReq.Data)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkShardBounds(methodReq.ShardKey(), a.shardLowerBound, a.shardUpperBound); err != nil {
+			return nil, err
+		}
+		methodResp, err := a.moabQueuesCore.SwapQueueId(&SwapQueueIdRequest{
+			Now:     rpcReq.Now,
+			Payload: &methodReq,
+		})
+		if err != nil {
+			return nil, err
+		}
+		rpcResp.Error = methodResp.ApplicationError
+		if methodResp.Payload != nil {
+			methodRespBytes, err := methodResp.Payload.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			rpcResp.Data = methodRespBytes
+		}
 	default:
 		return nil, fmt.Errorf("no matching handlers")
 	}
@@ -728,6 +755,30 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 			}
 			rpcResp.Data = methodRespBytes
 		}
+	case 8:
+		rpcMethodsTotal.WithLabelValues(a.nodeId, "MoabTasks", "RunPurgeQueueGarbageCollection", a.shardId, a.replicaId).Inc()
+		defer measureSince(rpcMethodDuration.WithLabelValues(a.nodeId, "MoabTasks", "RunPurgeQueueGarbageCollection", a.shardId, a.replicaId), t1)
+
+		methodReq := corepb.RunPurgeQueueGarbageCollectionRequest{}
+		err := methodReq.UnmarshalBinary(rpcReq.Data)
+		if err != nil {
+			return nil, err
+		}
+		methodResp, err := a.moabTasksCore.RunPurgeQueueGarbageCollection(&RunPurgeQueueGarbageCollectionRequest{
+			Now:     rpcReq.Now,
+			Payload: &methodReq,
+		})
+		if err != nil {
+			return nil, err
+		}
+		rpcResp.Error = methodResp.ApplicationError
+		if methodResp.Payload != nil {
+			methodRespBytes, err := methodResp.Payload.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			rpcResp.Data = methodRespBytes
+		}
 	default:
 		return nil, fmt.Errorf("no matching handlers")
 	}
@@ -794,6 +845,33 @@ func (a *MoabTasksCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse,
 			return nil, err
 		}
 		methodResp, err := a.moabTasksCore.GetStatistics(&GetStatisticsRequest{
+			Now:     rpcReq.Now,
+			Payload: &methodReq,
+		})
+		if err != nil {
+			return nil, err
+		}
+		rpcResp.Error = methodResp.ApplicationError
+		if methodResp.Payload != nil {
+			methodRespBytes, err := methodResp.Payload.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			rpcResp.Data = methodRespBytes
+		}
+	case 3:
+		rpcMethodsTotal.WithLabelValues(a.nodeId, "MoabTasks", "ListTasks", a.shardId, a.replicaId).Inc()
+		defer measureSince(rpcMethodDuration.WithLabelValues(a.nodeId, "MoabTasks", "ListTasks", a.shardId, a.replicaId), t1)
+
+		methodReq := corepb.ListTasksRequest{}
+		err := methodReq.UnmarshalBinary(rpcReq.Data)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkShardBounds(methodReq.ShardKey(), a.shardLowerBound, a.shardUpperBound); err != nil {
+			return nil, err
+		}
+		methodResp, err := a.moabTasksCore.ListTasks(&ListTasksRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
 		})

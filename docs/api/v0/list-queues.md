@@ -1,11 +1,19 @@
 # ListQueues
 
-Lists all the queues in the account. Unlike `GetQueue`, it does not return additional statistics or lists of schedules.
+Lists all the queues in the account. Unlike `GetQueue`, it does not return additional statistics.
+
+Read-only and safe to retry.
 
 ## Request
 
+* Leave `pagination_token` empty for the first page.
+* `limit` sets the number of entries per page.
+
 ```json
-{}
+{
+  "pagination_token": "",
+  "limit": 100
+}
 ```
 
 ## Response

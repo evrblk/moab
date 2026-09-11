@@ -80,6 +80,20 @@ func ValidateEnqueueRequest(req *moabpb.EnqueueRequest) error {
 		if len(e.Payload) > maxPayloadSize {
 			return invalid(fmt.Sprintf("EnqueueRequest.Entries[%d].Payload", i), fmt.Sprintf("exceeds max payload size (%d bytes)", maxPayloadSize))
 		}
+
+		if len(e.OverwriteOnDuplicate) > 0 && len(e.DedupeKey) == 0 {
+			return invalid(fmt.Sprintf("EnqueueRequest.Entries[%d].OverwriteOnDuplicate", i), "OverwriteOnDuplicate can be set only when DedupeKey is set")
+		}
+
+		for j, o := range e.OverwriteOnDuplicate {
+			switch o {
+			case moabpb.EnqueueRequestEntry_OVERWRITE_ON_DUPLICATE_EXPIRES_AT,
+				moabpb.EnqueueRequestEntry_OVERWRITE_ON_DUPLICATE_PAYLOAD,
+				moabpb.EnqueueRequestEntry_OVERWRITE_ON_DUPLICATE_SCHEDULED_AT:
+			default:
+				return invalid(fmt.Sprintf("EnqueueRequest.Entries[%d].OverwriteOnDuplicate[%d]", i, j), "unrecognized value")
+			}
+		}
 	}
 
 	return nil
@@ -117,6 +131,23 @@ func ValidateGetTaskRequest(req *moabpb.GetTaskRequest) error {
 	return nil
 }
 
+func ValidateListTasksRequest(req *moabpb.ListTasksRequest) error {
+	if err := validateQueueName(req.QueueName, "ListTasksRequest.QueueName"); err != nil {
+		return err
+	}
+
+	switch req.State {
+	case moabpb.TaskState_TASK_STATE_INVALID,
+		moabpb.TaskState_TASK_STATE_ENQUEUED,
+		moabpb.TaskState_TASK_STATE_IN_PROGRESS,
+		moabpb.TaskState_TASK_STATE_DEAD:
+	default:
+		return invalid("ListTasksRequest.State", "unrecognized value")
+	}
+
+	return nil
+}
+
 func ValidateReportStatusRequest(req *moabpb.ReportStatusRequest) error {
 	if err := validateQueueName(req.QueueName, "ReportStatusRequest.QueueName"); err != nil {
 		return err
@@ -137,6 +168,14 @@ func ValidateReportStatusRequest(req *moabpb.ReportStatusRequest) error {
 
 		if e.Attempt <= 0 {
 			return invalid(fmt.Sprintf("ReportStatusRequest.Entries[%d].Attempt", i), "must be greater than 0")
+		}
+
+		switch e.Status {
+		case moabpb.ReportStatusRequestEntry_STATUS_SUCCEEDED,
+			moabpb.ReportStatusRequestEntry_STATUS_IN_PROGRESS,
+			moabpb.ReportStatusRequestEntry_STATUS_FAILED:
+		default:
+			return invalid("ReportStatusRequest.Status", "unrecognized value")
 		}
 	}
 
@@ -542,8 +581,12 @@ func validateDequeuingSettings(value *moabpb.DequeuingSettings, fieldName string
 			return invalid(fmt.Sprintf("%s.RateLimiting.MaxTokens", fieldName), "rate limiting max tokens must be non-negative")
 		}
 
-		if value.RateLimiting.IntervalUnit == moabpb.IntervalUnit_INTERVAL_UNIT_INVALID {
-			return invalid(fmt.Sprintf("%s.RateLimiting.IntervalUnit", fieldName), "rate limiting interval unit must be set")
+		switch value.RateLimiting.IntervalUnit {
+		case moabpb.IntervalUnit_INTERVAL_UNIT_SECONDS,
+			moabpb.IntervalUnit_INTERVAL_UNIT_MINUTES,
+			moabpb.IntervalUnit_INTERVAL_UNIT_HOURS:
+		default:
+			return invalid(fmt.Sprintf("%s.RateLimiting.IntervalUnit", fieldName), "unrecognized value")
 		}
 	}
 

@@ -3,16 +3,18 @@
 Creates a schedule for a specified queue.
 
 There is a maximum limit on the number of schedules an account can have, and on the number of schedules per queue, this 
-method will return an error if the limit is reached. See [Service Limits](/docs/moab/limits).
+method will return an error if the limit is reached.
 
 ## Request
+
+* For `cron` and `timezone` see [Schedules](/docs/schedules.md)
 
 ```json
 {
   "queue_name": "SquirrelQueue",
   "name": "DailyFeeder",
   "description": "",
-  "cron": "",
+  "cron": "0 0,30 * * * *",
   "payload": "",
   "dedupe_key": "",
   "expires_in_seconds": 0,
@@ -24,6 +26,10 @@ method will return an error if the limit is reached. See [Service Limits](/docs/
 
 ## Response
 
+* Returns `NotFound` if the queue does not exist.
+* Returns `AlreadyExists` if a schedule with the same name exists in the queue.
+* Returns `ResourceExhausted` if the queue has reached its schedule quota.
+
 ```json
 {
   "schedule": {
@@ -33,7 +39,7 @@ method will return an error if the limit is reached. See [Service Limits](/docs/
     "created_at": 1695826539671432000,
     "updated_at": 1695826539671432000,
     "version": 1,
-    "cron": "",
+    "cron": "0 0,30 * * * *",
     "payload": "",
     "dedupe_key": "",
     "expires_in_seconds": 0,
@@ -43,17 +49,3 @@ method will return an error if the limit is reached. See [Service Limits](/docs/
   }
 }
 ```
-
-__CreateScheduleRequest__
-
-| Parameter                    | Type            |                                                                         |
-|------------------------------|-----------------|-------------------------------------------------------------------------|
-| queue_name                   | String          | Required, max 128 chars, `/[-_0-9a-zA-Z]*/`                             |
-| name                         | String          | Required, max 128 chars, `/[-_0-9a-zA-Z]*/`                             |
-| description                  | String          | Optional, max 1024 chars, default empty                                 |
-| keepalive_timeout_in_seconds | Integer         | Optional, default 0                                                     |
-| expires_in_seconds           | Integer         | Optional, default 0                                                     |
-| retry_strategy               | RetryStrategy   | Optional, default empty                                                 |
-| cron                         | String          | Required, valid cron expression, see [Schedules](/docs/moab/schedules/) |
-| timezone                     | String          | Required, valid timezone                                                |
-| dedupe_key                   | String          | Optional, max 256 characters, default empty                             |

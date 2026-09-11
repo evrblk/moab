@@ -5,7 +5,7 @@ ready then an empty successful response will be returned. `batch_size` defines a
 be picked up at once if that many is ready. Default is `1`.
 
 __Note:__ This method is eventually consistent. Queues definitions are cached to reduce the load on control plane. So 
-any change made by `UpdateQueue`, such as changing dequeuing settings, will be propagated here in about 10 seconds.    
+any change made by `UpdateQueue`, such as changing dequeuing settings, will be propagated here in about 1 second.
 
 ## Request
 
@@ -17,6 +17,8 @@ any change made by `UpdateQueue`, such as changing dequeuing settings, will be p
 ```
 
 ## Response
+
+* Returns `NotFound` if the queue does not exist.
 
 ```json
 {
@@ -34,10 +36,3 @@ any change made by `UpdateQueue`, such as changing dequeuing settings, will be p
   ]
 }
 ```
-
-__DequeueRequest__
-
-| Parameter        | Type        |                                             |
-|------------------|-------------|---------------------------------------------|
-| queue_name       | String      | Required, max 128 chars, `/[-_0-9a-zA-Z]*/` |
-| batch_size       | Integer     | Optional, between [1; 10], default 1        |

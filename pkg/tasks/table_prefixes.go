@@ -20,4 +20,5 @@ var (
 	tablePrefixCounters           = []byte{0x08}
 	tablePrefixQueueState         = []byte{0x09}
 	tablePrefixRateLimiters       = []byte{0x0a}
+	tablePrefixPurgeGCRecords     = []byte{0x0b}
 )

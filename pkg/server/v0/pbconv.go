@@ -2,6 +2,7 @@ package v0
 
 import (
 	"encoding/base64"
+	"errors"
 
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/proto"
@@ -79,7 +80,7 @@ func intervalUnitToFront(u corepb.IntervalUnit) moabpb.IntervalUnit {
 	case corepb.IntervalUnit_INTERVAL_UNIT_HOURS:
 		return moabpb.IntervalUnit_INTERVAL_UNIT_HOURS
 	default:
-		return moabpb.IntervalUnit_INTERVAL_UNIT_SECONDS
+		return moabpb.IntervalUnit_INTERVAL_UNIT_INVALID
 	}
 }
 
@@ -153,7 +154,7 @@ func intervalUnitToCore(u moabpb.IntervalUnit) corepb.IntervalUnit {
 	case moabpb.IntervalUnit_INTERVAL_UNIT_HOURS:
 		return corepb.IntervalUnit_INTERVAL_UNIT_HOURS
 	default:
-		return corepb.IntervalUnit_INTERVAL_UNIT_SECONDS
+		return corepb.IntervalUnit_INTERVAL_UNIT_INVALID
 	}
 }
 
@@ -174,6 +175,8 @@ func queueStatsToFront(r *corepb.GetStatisticsResponse) *moabpb.QueueStats {
 		EnqueuedTasksCount:      r.EnqueuedTasksCount,
 		InProgressTasksCount:    r.InProgressTasksCount,
 		DeadTasksCount:          r.DeadTasksCount,
+		ProcessedTasksCount:     r.ProcessedTasksCount,
+		ExpiredTasksCount:       r.ExpiredTasksCount,
 		AgeOfOldestEnqueuedTask: r.AgeOfOldestEnqueuedTask,
 	}
 }
@@ -195,9 +198,40 @@ func taskToFront(t *corepb.Task) *moabpb.Task {
 			Attempts:    t.Attempts,
 			DedupeKey:   t.DedupeKey,
 			ThreadId:    t.ThreadId,
+			State:       taskStateToFront(t.State),
 		}
 	} else {
 		return nil
+	}
+}
+
+func taskStateToFront(s corepb.TaskState) moabpb.TaskState {
+	switch s {
+	case corepb.TaskState_TASK_STATE_ENQUEUED:
+		return moabpb.TaskState_TASK_STATE_ENQUEUED
+	case corepb.TaskState_TASK_STATE_IN_PROGRESS:
+		return moabpb.TaskState_TASK_STATE_IN_PROGRESS
+	case corepb.TaskState_TASK_STATE_DEAD:
+		return moabpb.TaskState_TASK_STATE_DEAD
+	default:
+		return moabpb.TaskState_TASK_STATE_INVALID
+	}
+}
+
+// taskStateFilterToCore converts a validated ListTasksRequest.State (see
+// ValidateListTasksRequest, which rejects anything not in this switch)
+// into the core's TaskState. TASK_STATE_INVALID means "no filter, list
+// every state" on both sides.
+func taskStateFilterToCore(s moabpb.TaskState) corepb.TaskState {
+	switch s {
+	case moabpb.TaskState_TASK_STATE_ENQUEUED:
+		return corepb.TaskState_TASK_STATE_ENQUEUED
+	case moabpb.TaskState_TASK_STATE_IN_PROGRESS:
+		return corepb.TaskState_TASK_STATE_IN_PROGRESS
+	case moabpb.TaskState_TASK_STATE_DEAD:
+		return corepb.TaskState_TASK_STATE_DEAD
+	default:
+		return corepb.TaskState_TASK_STATE_INVALID
 	}
 }
 
@@ -235,7 +269,7 @@ func reportedStatusToCore(s moabpb.ReportStatusRequestEntry_Status) (corepb.Repo
 	case moabpb.ReportStatusRequestEntry_STATUS_SUCCEEDED:
 		return corepb.ReportStatusRequestEntry_STATUS_SUCCEEDED, nil
 	default:
-		return 0, nil
+		return corepb.ReportStatusRequestEntry_STATUS_INVALID, errors.New("unrecognized value")
 	}
 }
 

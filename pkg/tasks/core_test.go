@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"testing"
 	"time"
@@ -588,6 +589,9 @@ func TestDeleteTasks(t *testing.T) {
 	require.Equal(t, []byte("b"), fetched.Payload)
 }
 
+// TestPurgeQueue pins down that PurgeQueue itself is a marker, not a
+// synchronous delete: tasks are still there immediately afterward, and only
+// disappear once RunPurgeQueueGarbageCollection actually drains them.
 func TestPurgeQueue(t *testing.T) {
 	core := newTasksCore(t)
 
@@ -598,6 +602,13 @@ func TestPurgeQueue(t *testing.T) {
 
 	purgeQueue(t, core, accountId, queueId)
 
+	// The marker alone must not have deleted anything yet.
+	for _, task := range tasks {
+		getTask(t, core, task.Id, now)
+	}
+
+	runPurgeQueueGarbageCollection(t, core, &corepb.RunPurgeQueueGarbageCollectionRequest{})
+
 	for _, task := range tasks {
 		appErr := getTaskWithError(t, core, task.Id, now)
 		require.Equal(t, mrpc.NotFound, appErr.Code)
@@ -605,6 +616,97 @@ func TestPurgeQueue(t *testing.T) {
 
 	stats := getStatistics(t, core, accountId, queueId, now)
 	require.EqualValues(t, 0, stats.EnqueuedTasksCount)
+}
+
+// TestPurgeQueueDrainsAtScaleAcrossMultipleGCCalls pins down the pagination
+// bounds RunPurgeQueueGarbageCollection is supposed to enforce: a queue with
+// more tasks than fit in one page must survive across several GC calls,
+// each bounded by MaxVisitedTasks, rather than requiring one huge
+// transaction (the gap PurgeQueue itself used to have before it became a
+// marker).
+func TestPurgeQueueDrainsAtScaleAcrossMultipleGCCalls(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	const taskCount = 25
+	entries := make([]*corepb.EnqueueRequestEntry, taskCount)
+	for i := range entries {
+		entries[i] = entry(fmt.Sprintf("task-%d", i))
+	}
+	tasks := enqueue(t, core, accountId, queueId, now, entries...)
+
+	purgeQueue(t, core, accountId, queueId)
+
+	// Every GC call is capped well under taskCount, so draining requires
+	// several calls.
+	req := &corepb.RunPurgeQueueGarbageCollectionRequest{
+		GcRecordsPageSize:     10,
+		GcRecordTasksPageSize: 5,
+		MaxVisitedTasks:       10,
+	}
+	for range taskCount/int(req.MaxVisitedTasks) + 1 {
+		runPurgeQueueGarbageCollection(t, core, req)
+	}
+
+	for _, task := range tasks {
+		appErr := getTaskWithError(t, core, task.Id, now)
+		require.Equal(t, mrpc.NotFound, appErr.Code)
+	}
+
+	stats := getStatistics(t, core, accountId, queueId, now)
+	require.EqualValues(t, 0, stats.EnqueuedTasksCount)
+}
+
+// TestPurgedQueueIdRejectsEnqueueDequeueAndListTasks pins down the guard a
+// purge marker installs: once PurgeQueue has rotated a queue id out, every
+// operation that could still be aimed at it from a stale cache (Enqueue,
+// Dequeue, ListTasks) gets an immediate, unambiguous NotFound — even before
+// RunPurgeQueueGarbageCollection has actually deleted anything under it.
+// This is what lets the server handler retry against a freshly resolved
+// queue instead of silently writing to (or reading stale data from) an id
+// that's being asynchronously destroyed.
+func TestPurgedQueueIdRejectsEnqueueDequeueAndListTasks(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	enqueue(t, core, accountId, queueId, now, entry("a"))
+	purgeQueue(t, core, accountId, queueId)
+
+	enqueueResp, err := core.Enqueue(&coreapis.EnqueueRequest{
+		Payload: &corepb.EnqueueRequest{
+			QueueId: &corepb.QueueId{AccountId: accountId, QueueId: queueId},
+			Entries: []*corepb.EnqueueRequestEntry{entry("b")},
+		},
+		Now: now.UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, enqueueResp.ApplicationError)
+	require.Equal(t, mrpc.NotFound, enqueueResp.ApplicationError.Code)
+
+	dequeueResp, err := core.Dequeue(&coreapis.DequeueRequest{
+		Payload: &corepb.DequeueRequest{
+			QueueId:      &corepb.QueueId{AccountId: accountId, QueueId: queueId},
+			DequeueLimit: 10,
+		},
+		Now: now.UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, dequeueResp.ApplicationError)
+	require.Equal(t, mrpc.NotFound, dequeueResp.ApplicationError.Code)
+
+	listResp, err := core.ListTasks(&coreapis.ListTasksRequest{
+		Payload: &corepb.ListTasksRequest{
+			QueueId: &corepb.QueueId{AccountId: accountId, QueueId: queueId},
+			Limit:   10,
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, listResp.ApplicationError)
+	require.Equal(t, mrpc.NotFound, listResp.ApplicationError.Code)
 }
 
 func TestRunGarbageCollection(t *testing.T) {
@@ -1157,6 +1259,185 @@ func TestAgeOfOldestEnqueuedTaskExcludesNonHeadThreadedTasks(t *testing.T) {
 	require.Zero(t, stats.AgeOfOldestEnqueuedTask)
 }
 
+func listTasks(t *testing.T, core *Core, accountId, queueId uint64, state corepb.TaskState, paginationToken *corepb.PaginationToken, limit int32) *corepb.ListTasksResponse {
+	t.Helper()
+
+	resp, err := core.ListTasks(&coreapis.ListTasksRequest{
+		Payload: &corepb.ListTasksRequest{
+			QueueId:         &corepb.QueueId{AccountId: accountId, QueueId: queueId},
+			PaginationToken: paginationToken,
+			Limit:           limit,
+			State:           state,
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.ApplicationError)
+	require.NotNil(t, resp.Payload)
+
+	return resp.Payload
+}
+
+// TestListTasksUnfilteredReturnsEveryState documents that TASK_STATE_INVALID
+// (unset) lists every task regardless of state, scanning the primary table.
+func TestListTasksUnfilteredReturnsEveryState(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	// Enqueue and dequeue the soon-to-be IN_PROGRESS and DEAD tasks first,
+	// so Dequeue's greedy limit=10 scan doesn't also sweep up the task meant
+	// to stay ENQUEUED (enqueued below, after this pass).
+	inProgressSrc := enqueue(t, core, accountId, queueId, now, entry("in-progress"))[0]
+	deadEntry := entry("to-be-dead")
+	deadEntry.RetryStrategy = &corepb.RetryStrategy{RetryIntervalsInSeconds: nil}
+	enqueue(t, core, accountId, queueId, now, deadEntry)
+
+	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
+	require.Len(t, dequeued, 2)
+
+	var inProgress, toKill *corepb.Task
+	for _, d := range dequeued {
+		if d.Id.TaskId == inProgressSrc.Id.TaskId {
+			inProgress = d
+		} else {
+			toKill = d
+		}
+	}
+	require.NotNil(t, inProgress)
+	require.NotNil(t, toKill)
+	reportStatusWithDLQConfig(t, core, toKill.Id, now, corepb.ReportStatusRequestEntry_STATUS_FAILED, toKill.Attempts, enabledDLQConfig())
+
+	enqueued := enqueue(t, core, accountId, queueId, now, entry("enqueued"))[0]
+
+	page := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_INVALID, nil, 100)
+	require.Len(t, page.Tasks, 3)
+
+	states := make(map[uint64]corepb.TaskState)
+	for _, task := range page.Tasks {
+		states[task.Id.TaskId] = task.State
+	}
+	require.Equal(t, corepb.TaskState_TASK_STATE_ENQUEUED, states[enqueued.Id.TaskId])
+	require.Equal(t, corepb.TaskState_TASK_STATE_IN_PROGRESS, states[inProgress.Id.TaskId])
+	require.Equal(t, corepb.TaskState_TASK_STATE_DEAD, states[toKill.Id.TaskId])
+}
+
+// TestListTasksFiltersByState pins down that each state filter scans that
+// state's own index and returns only tasks currently in it.
+func TestListTasksFiltersByState(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	// Enqueue and dequeue the soon-to-be IN_PROGRESS and DEAD tasks first,
+	// so Dequeue's greedy limit=10 scan doesn't also sweep up the task meant
+	// to stay ENQUEUED (enqueued below, after this pass).
+	inProgressEntry := entry("in-progress")
+	inProgressSrc := enqueue(t, core, accountId, queueId, now, inProgressEntry)[0]
+
+	deadEntry := entry("dead")
+	deadEntry.RetryStrategy = &corepb.RetryStrategy{RetryIntervalsInSeconds: nil}
+	enqueue(t, core, accountId, queueId, now, deadEntry)
+
+	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
+	require.Len(t, dequeued, 2)
+
+	var inProgress, toKill *corepb.Task
+	for _, d := range dequeued {
+		if d.Id.TaskId == inProgressSrc.Id.TaskId {
+			inProgress = d
+		} else {
+			toKill = d
+		}
+	}
+	require.NotNil(t, inProgress)
+	require.NotNil(t, toKill)
+	reportStatusWithDLQConfig(t, core, toKill.Id, now, corepb.ReportStatusRequestEntry_STATUS_FAILED, toKill.Attempts, enabledDLQConfig())
+
+	enqueued := enqueue(t, core, accountId, queueId, now, entry("enqueued"))[0]
+
+	enqueuedPage := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_ENQUEUED, nil, 100)
+	require.Len(t, enqueuedPage.Tasks, 1)
+	require.Equal(t, enqueued.Id.TaskId, enqueuedPage.Tasks[0].Id.TaskId)
+
+	inProgressPage := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_IN_PROGRESS, nil, 100)
+	require.Len(t, inProgressPage.Tasks, 1)
+	require.Equal(t, inProgress.Id.TaskId, inProgressPage.Tasks[0].Id.TaskId)
+
+	deadPage := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_DEAD, nil, 100)
+	require.Len(t, deadPage.Tasks, 1)
+	require.Equal(t, toKill.Id.TaskId, deadPage.Tasks[0].Id.TaskId)
+}
+
+// TestListTasksEnqueuedFilterExcludesNonHeadThreadedTasks documents the same
+// limitation TestAgeOfOldestEnqueuedTaskExcludesNonHeadThreadedTasks pins
+// down for getStatistics: filtering by TASK_STATE_ENQUEUED only scans
+// queueIndex (thread heads and non-threaded tasks), so a non-head thread
+// member is excluded even though it is genuinely ENQUEUED — only a thread's
+// head is ever independently dequeued.
+func TestListTasksEnqueuedFilterExcludesNonHeadThreadedTasks(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	head := entry("head")
+	head.ThreadId = "thread-1"
+	enqueue(t, core, accountId, queueId, now, head)
+	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
+	require.Len(t, dequeued, 1)
+
+	nonHead := entry("non-head")
+	nonHead.ThreadId = "thread-1"
+	enqueue(t, core, accountId, queueId, now, nonHead)
+
+	page := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_ENQUEUED, nil, 100)
+	require.Empty(t, page.Tasks)
+
+	// The unfiltered listing still sees it, since it scans the primary table.
+	allPage := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_INVALID, nil, 100)
+	require.Len(t, allPage.Tasks, 2)
+}
+
+// TestListTasksPagination pins down that a small limit produces a
+// NextPaginationToken that, followed repeatedly, eventually walks the whole
+// set with no duplicates and no omissions.
+func TestListTasksPagination(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	const total = 5
+	entries := make([]*corepb.EnqueueRequestEntry, total)
+	for i := range entries {
+		entries[i] = entry(fmt.Sprintf("payload-%d", i))
+	}
+	created := enqueue(t, core, accountId, queueId, now, entries...)
+	require.Len(t, created, total)
+
+	seen := make(map[uint64]struct{})
+	var token *corepb.PaginationToken
+	for {
+		page := listTasks(t, core, accountId, queueId, corepb.TaskState_TASK_STATE_INVALID, token, 2)
+		for _, task := range page.Tasks {
+			_, dup := seen[task.Id.TaskId]
+			require.False(t, dup, "task %d returned twice across pages", task.Id.TaskId)
+			seen[task.Id.TaskId] = struct{}{}
+		}
+
+		if page.NextPaginationToken == nil {
+			break
+		}
+		token = page.NextPaginationToken
+	}
+
+	require.Len(t, seen, total)
+}
+
 func newTasksCore(t *testing.T) *Core {
 	t.Helper()
 
@@ -1338,6 +1619,18 @@ func runGarbageCollection(t *testing.T, core *Core, now time.Time) {
 	resp, err := core.RunTasksGarbageCollection(&coreapis.RunTasksGarbageCollectionRequest{
 		Payload: &corepb.RunTasksGarbageCollectionRequest{},
 		Now:     now.UnixNano(),
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.ApplicationError)
+}
+
+func runPurgeQueueGarbageCollection(t *testing.T, core *Core, req *corepb.RunPurgeQueueGarbageCollectionRequest) {
+	t.Helper()
+
+	resp, err := core.RunPurgeQueueGarbageCollection(&coreapis.RunPurgeQueueGarbageCollectionRequest{
+		Payload: req,
 	})
 
 	require.NoError(t, err)

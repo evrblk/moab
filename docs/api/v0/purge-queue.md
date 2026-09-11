@@ -1,6 +1,8 @@
 # PurgeQueue
 
-Removes all the tasks from a queue. __TODO only enqueued?__
+Removes all the tasks from a queue regardless of their state. The action is quick since it only marks the queue for
+garbage collection and the async GC worker actually cleans it up. There is no conflict between newly added tasks right
+after purging and old tasks that being cleaned by GC.
 
 ## Request
 
@@ -12,12 +14,8 @@ Removes all the tasks from a queue. __TODO only enqueued?__
 
 ## Response
 
+* Returns `NotFound` if the queue does not exist.
+
 ```json
 {}
 ```
-
-__PurgeQueueRequest__
-
-| Parameter       | Type                |                                                 |
-|-----------------|---------------------|-------------------------------------------------|
-| queue_name      | String              | Required, max 128 chars, `/[-_0-9a-zA-Z]*/`     |

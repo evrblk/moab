@@ -79,6 +79,16 @@ func (t *queueStateTable) Set(txn *store.Txn, accountId uint64, queueId uint64, 
 	return t.table.Set(txn, t.tablePK(accountId, queueId), state)
 }
 
+// Delete removes the operational state row for (accountId, queueId).
+// Deleting a row that does not exist is not an error.
+func (t *queueStateTable) Delete(txn *store.Txn, accountId uint64, queueId uint64) error {
+	err := t.table.Delete(txn, t.tablePK(accountId, queueId))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	return nil
+}
+
 func (t *queueStateTable) tablePK(accountId uint64, queueId uint64) []byte {
 	return utils.ConcatBytes(accountId, queueId)
 }

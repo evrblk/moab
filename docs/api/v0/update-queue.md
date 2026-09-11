@@ -18,7 +18,7 @@ if there were no effective changes.
   "retry_strategy": {
   },
   "dequeuing_settings": {
-    "max_inflight_tasks": 0,
+    "max_in_progress_tasks": 0,
     "rate_limiting": {
       "max_tokens": 1000,
       "interval": 1,
@@ -36,6 +36,8 @@ if there were no effective changes.
 
 ## Response
 
+* Returns `NotFound` if the queue does not exist.
+
 ```json
 {
   "queue": {
@@ -49,7 +51,7 @@ if there were no effective changes.
     "retry_strategy": {
     },
     "dequeuing_settings": {
-      "max_inflight_tasks": 0,
+      "max_in_progress_tasks": 0,
       "rate_limiting": {
         "max_tokens": 1000,
         "interval": 1,
@@ -88,11 +90,11 @@ __RetryStrategy__
 
 __DequeuingSettings__
 
-| Parameter            | Type                     |                             |
-|----------------------|--------------------------|-----------------------------|
-| max_inflight_tasks   | Integer                  | Optional, default unlimited |
-| rate_limiting        | TokenBucketRateLimiting  | Optional, default empty     |
-| dequeuing_paused     | Boolean                  | Optional, default false     |
+| Parameter               | Type                     |                             |
+|-------------------------|--------------------------|-----------------------------|
+| max_in_progress_tasks   | Integer                  | Optional, default unlimited |
+| rate_limiting           | TokenBucketRateLimiting  | Optional, default empty     |
+| dequeuing_paused        | Boolean                  | Optional, default false     |
 
 __TokenBucketRateLimiting__
 

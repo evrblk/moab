@@ -15,6 +15,7 @@ import (
 	"github.com/evrblk/moab/pkg/coreapis"
 	"github.com/evrblk/moab/pkg/corepb"
 	"github.com/evrblk/moab/pkg/ids"
+	"github.com/evrblk/moab/pkg/pagination"
 	"github.com/evrblk/moab/pkg/sharding"
 )
 
@@ -28,6 +29,12 @@ const (
 
 	defaultGCMaxVisitedTasks = 1000
 	defaultGCPageSize        = 250
+
+	// Defaults applied by RunPurgeQueueGarbageCollection when the request
+	// leaves the corresponding field unset (<= 0).
+	defaultPurgeGCRecordsPageSize     = 100
+	defaultPurgeGCRecordTasksPageSize = 250
+	defaultPurgeGCMaxVisitedTasks     = 1000
 )
 
 // Core is the application core for the Tasks subsystem. It owns tasks, their
@@ -42,11 +49,12 @@ type Core struct {
 	shardLowerBound cluster.ShardKey
 	shardUpperBound cluster.ShardKey
 
-	tasks        *tasksTable
-	threads      *threadsTable
-	counters     *countersTable
-	queueState   *queueStateTable
-	rateLimiters *rateLimitersTable
+	tasks          *tasksTable
+	threads        *threadsTable
+	counters       *countersTable
+	queueState     *queueStateTable
+	rateLimiters   *rateLimitersTable
+	purgeGCRecords *purgeGCRecordsTable
 }
 
 var _ coreapis.MoabTasksCoreApi = &Core{}
@@ -62,11 +70,12 @@ func NewCore(badgerStore *store.BadgerStore, replicaPrefix []byte, shardLowerBou
 		shardLowerBound: shardLowerBound,
 		shardUpperBound: shardUpperBound,
 
-		tasks:        newTasksTable(replicaPrefix),
-		threads:      newThreadsTable(replicaPrefix),
-		counters:     newCountersTable(replicaPrefix),
-		queueState:   newQueueStateTable(replicaPrefix),
-		rateLimiters: newRateLimitersTable(replicaPrefix),
+		tasks:          newTasksTable(replicaPrefix),
+		threads:        newThreadsTable(replicaPrefix),
+		counters:       newCountersTable(replicaPrefix),
+		queueState:     newQueueStateTable(replicaPrefix),
+		rateLimiters:   newRateLimitersTable(replicaPrefix),
+		purgeGCRecords: newPurgeGCRecordsTable(replicaPrefix),
 	}
 }
 
@@ -80,6 +89,7 @@ func (c *Core) snapshotSections() []honey.Section {
 		{Name: "Counters", Table: c.counters},
 		{Name: "QueueState", Table: c.queueState},
 		{Name: "RateLimiters", Table: c.rateLimiters},
+		{Name: "PurgeGCRecords", Table: c.purgeGCRecords},
 	}
 }
 
@@ -214,6 +224,36 @@ func (c *Core) GetStatistics(req *coreapis.GetStatisticsRequest) (*coreapis.GetS
 	}, nil
 }
 
+// ListTasks returns a page of tasks belonging to a queue, continuing from
+// req.Payload.PaginationToken if provided. req.Payload.State ==
+// TASK_STATE_INVALID (unset) lists every task regardless of state; a
+// specific state filters to it — see tasksTable.List for how each state maps
+// to a different physical index and sort order.
+func (c *Core) ListTasks(req *coreapis.ListTasksRequest) (*coreapis.ListTasksResponse, error) {
+	txn := c.badgerStore.View()
+	defer txn.Discard()
+
+	if appErr, err := c.checkQueueNotPurged(txn, req.Payload.QueueId.AccountId, req.Payload.QueueId.QueueId); err != nil {
+		return nil, err
+	} else if appErr != nil {
+		return &coreapis.ListTasksResponse{ApplicationError: appErr}, nil
+	}
+
+	result, err := c.tasks.List(txn, req.Payload.QueueId.AccountId, req.Payload.QueueId.QueueId,
+		req.Payload.State, req.Payload.PaginationToken, pagination.GetLimitWithDefaults(int(req.Payload.Limit)))
+	if err != nil {
+		return nil, err
+	}
+
+	return &coreapis.ListTasksResponse{
+		Payload: &corepb.ListTasksResponse{
+			Tasks:                   result.Tasks,
+			NextPaginationToken:     result.NextPaginationToken,
+			PreviousPaginationToken: result.PreviousPaginationToken,
+		},
+	}, nil
+}
+
 // Enqueue creates a new task for each entry, except that an entry whose
 // DedupeKey already points at a live task applies entry.OverwriteOnDuplicate
 // to that existing task instead of creating a new one. An entry scheduled in
@@ -223,6 +263,12 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest) (*coreapis.EnqueueResponse,
 	defer txn.Discard()
 
 	accountId, queueId := req.Payload.QueueId.AccountId, req.Payload.QueueId.QueueId
+
+	if appErr, err := c.checkQueueNotPurged(txn, accountId, queueId); err != nil {
+		return nil, err
+	} else if appErr != nil {
+		return &coreapis.EnqueueResponse{ApplicationError: appErr}, nil
+	}
 
 	// Affected (enqueued or overwritten) tasks to be returned.
 	tasks := make([]*corepb.Task, 0, len(req.Payload.Entries))
@@ -316,6 +362,12 @@ func (c *Core) Dequeue(req *coreapis.DequeueRequest) (*coreapis.DequeueResponse,
 	defer txn.Discard()
 
 	accountId, queueId := req.Payload.QueueId.AccountId, req.Payload.QueueId.QueueId
+
+	if appErr, err := c.checkQueueNotPurged(txn, accountId, queueId); err != nil {
+		return nil, err
+	} else if appErr != nil {
+		return &coreapis.DequeueResponse{ApplicationError: appErr}, nil
+	}
 
 	dequeueLimit := int64(req.Payload.DequeueLimit)
 	var rateLimiterState *corepb.RateLimiterState
@@ -564,23 +616,21 @@ func (c *Core) restartTask(txn *store.Txn, task *corepb.Task, now, scheduledAt, 
 	return c.createTask(txn, task)
 }
 
-// PurgeQueue deletes every task in a queue, regardless of state.
+// PurgeQueue marks every task under req.Payload.QueueId for asynchronous
+// deletion, so this call stays O(1) regardless of how many tasks the queue
+// holds. The caller (the server handler) is responsible for ensuring this
+// id can never receive another task before calling this — it does so by
+// rotating the queue onto a fresh id via QueuesCore.SwapQueueId first and
+// passing the old id here. RunPurgeQueueGarbageCollection drains the marker
+// in bounded batches.
 func (c *Core) PurgeQueue(req *coreapis.PurgeQueueRequest) (*coreapis.PurgeQueueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
-	accountId, queueId := req.Payload.QueueId.AccountId, req.Payload.QueueId.QueueId
-
-	// TODO implement more efficient purge
-	tasks, err := c.tasks.ListAll(txn, accountId, queueId)
-	if err != nil {
+	if err := c.purgeGCRecords.Create(txn, &corepb.PurgeQueueGarbageCollectionRecord{
+		QueueId: req.Payload.QueueId,
+	}); err != nil {
 		return nil, err
-	}
-
-	for _, task := range tasks {
-		if err := c.deleteTask(txn, task, taskDeletionNone); err != nil {
-			return nil, err
-		}
 	}
 
 	if err := txn.Commit(); err != nil {
@@ -589,6 +639,98 @@ func (c *Core) PurgeQueue(req *coreapis.PurgeQueueRequest) (*coreapis.PurgeQueue
 
 	return &coreapis.PurgeQueueResponse{
 		Payload: &corepb.PurgeQueueResponse{},
+	}, nil
+}
+
+// RunPurgeQueueGarbageCollection processes one page of pending purge work:
+// for each queue id marked by PurgeQueue, deletes a page of its remaining
+// tasks regardless of state or ExpiresAt, dropping the marker — along with
+// the purged id's now-unused counters/queue-state/rate-limiter rows — once
+// nothing is left. The amount of work per call is bounded by
+// req.Payload.MaxVisitedTasks (total across every record processed this
+// call); a record that doesn't fully drain within budget is left for the
+// next GC tick. Unlike RunTasksGarbageCollection, which only sweeps tasks
+// whose ExpiresAt has passed, this deletes unconditionally: a purged queue
+// id will never receive another task, so there is nothing left to preserve
+// under it.
+func (c *Core) RunPurgeQueueGarbageCollection(req *coreapis.RunPurgeQueueGarbageCollectionRequest) (*coreapis.RunPurgeQueueGarbageCollectionResponse, error) {
+	txn := c.badgerStore.Update()
+	defer txn.Discard()
+
+	gcRecordsPageSize := int(req.Payload.GcRecordsPageSize)
+	if gcRecordsPageSize <= 0 {
+		gcRecordsPageSize = defaultPurgeGCRecordsPageSize
+	}
+	gcRecordTasksPageSize := int(req.Payload.GcRecordTasksPageSize)
+	if gcRecordTasksPageSize <= 0 {
+		gcRecordTasksPageSize = defaultPurgeGCRecordTasksPageSize
+	}
+	maxVisitedTasks := int(req.Payload.MaxVisitedTasks)
+	if maxVisitedTasks <= 0 {
+		maxVisitedTasks = defaultPurgeGCMaxVisitedTasks
+	}
+
+	gcRecords, err := c.purgeGCRecords.List(txn, gcRecordsPageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	visitedTasks := 0
+recordsLoop:
+	for _, gcRecord := range gcRecords {
+		accountId, queueId := gcRecord.QueueId.AccountId, gcRecord.QueueId.QueueId
+
+		// Keep paging through this one record — not just a single page —
+		// until it's fully drained or the call's overall budget runs out, so
+		// a queue with far more tasks than gcRecordTasksPageSize doesn't need
+		// one worker tick per page to drain. Always pass a nil token: every
+		// task in the previous page was just deleted, so "first
+		// gcRecordTasksPageSize tasks still there" is the next page.
+		for {
+			result, err := c.tasks.List(txn, accountId, queueId, corepb.TaskState_TASK_STATE_INVALID, nil, gcRecordTasksPageSize)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, task := range result.Tasks {
+				if err := c.deleteTask(txn, task, taskDeletionNone); err != nil {
+					return nil, err
+				}
+
+				visitedTasks++
+				if visitedTasks >= maxVisitedTasks {
+					break recordsLoop
+				}
+			}
+
+			if result.NextPaginationToken != nil {
+				continue
+			}
+
+			// No tasks left under this queue id: the marker, and every other
+			// per-queue row keyed under it, can be dropped for good.
+			if err := c.purgeGCRecords.Delete(txn, gcRecord); err != nil {
+				return nil, err
+			}
+			if err := c.counters.Delete(txn, accountId, queueId); err != nil {
+				return nil, err
+			}
+			if err := c.queueState.Delete(txn, accountId, queueId); err != nil {
+				return nil, err
+			}
+			if err := c.rateLimiters.Delete(txn, accountId, queueId); err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+
+	if err := txn.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &coreapis.RunPurgeQueueGarbageCollectionResponse{
+		Payload: &corepb.RunPurgeQueueGarbageCollectionResponse{},
 	}, nil
 }
 
@@ -1546,5 +1688,42 @@ func taskNotFoundError(taskId *corepb.TaskId) *mrpc.Error {
 		map[string]string{
 			"task_id":  ids.EncodeTaskId(taskId.TaskId),
 			"queue_id": fmt.Sprintf("%d", taskId.QueueId),
+		})
+}
+
+// checkQueueNotPurged returns a NotFound application error if (accountId,
+// queueId) has an active purge marker — i.e. SwapQueueId rotated it out from
+// under its name and its tasks are being (or have already been)
+// asynchronously drained. Every caller of this exact id is expected to have
+// resolved it from a Queue looked up by name; a caller working from a stale
+// cached one (unavoidable across multiple gateway processes, each with its
+// own independent cache, since a purge can only invalidate the cache on the
+// process instance that handled it) needs an unambiguous, immediate signal
+// that the id it's holding is gone, rather than silently writing to or
+// reading from tasks that are being deleted out from under it.
+//
+// This is deliberately checked only by the handful of methods vulnerable to
+// exactly that (Enqueue, Dequeue, ListTasks — the ones the server handler
+// resolves through its cache); every other method (GetTask, ReportStatus,
+// DeleteTasks, RestartTasks, GetStatistics) always resolves the queue fresh
+// by name first, so it can never observe a just-rotated id in the first
+// place — checking there would only add cost without ever firing.
+func (c *Core) checkQueueNotPurged(txn *store.Txn, accountId uint64, queueId uint64) (*mrpc.Error, error) {
+	purged, err := c.purgeGCRecords.Exists(txn, accountId, queueId)
+	if err != nil {
+		return nil, err
+	}
+	if purged {
+		return queueIdPurgedError(accountId, queueId), nil
+	}
+	return nil, nil
+}
+
+func queueIdPurgedError(accountId uint64, queueId uint64) *mrpc.Error {
+	return mrpc.NewErrorWithContext(
+		mrpc.NotFound,
+		"queue not found",
+		map[string]string{
+			"queue_id": ids.EncodeQueueId(&corepb.QueueId{AccountId: accountId, QueueId: queueId}),
 		})
 }

@@ -1,22 +1,23 @@
 # Dequeuing Settings
 
-Normally, workers would dequeue a batch of tasks from the queue, process them, report as completed (or failed), then repeat 
-on the next batch. The more workers you have, the more tasks you can process at once. There are no technical limits on the 
-maximum number of inflight tasks. Also, workers dequeue tasks as fast as they can process them. However, this is not always
-desirable. Moab allows you to limit the rate of dequeuing and the number of inflight tasks if needed. 
+Normally, workers would dequeue a batch of tasks from the queue, process them, report as completed (or failed), then 
+repeat on the next batch. The more workers you have, the more tasks you can process at once. There are no technical 
+limits on the maximum number of in-progress tasks. Also, workers dequeue tasks as fast as they can process them. 
+However, this is not always desirable. Moab allows you to limit the rate of dequeuing and the number of in-progress
+tasks if needed. 
 
-## Concurrency Limiting (number of inflight tasks)
+## Concurrency Limiting (number of in-progress tasks)
 
 Sometimes it is necessary to limit the number of concurrently processing tasks because of, for example, technical
 limitations on a number of connections to an underlying database or contractual limitations on a 3rd party integration.
-This can be achieved by setting `dequeuing_settings.max_inflight_tasks` parameter at the queue level. Default `0`
-means unlimited. Moab will ensure that at most `max_inflight_tasks` tasks are in `INFLIGHT` state at any given moment in
-time. Please keep in mind that it does not mean that all those tasks are actively being processed by workers, since any
-worker can die and some tasks will remain in `INFLIGHT` state until `keepalive_timeout_in_seconds` expires. When the limit
-is reached, `Dequeue` returns a successful empty response.
+This can be achieved by setting `dequeuing_settings.max_in_progress_tasks` parameter at the queue level. Default `0`
+means unlimited. Moab will ensure that at most `max_in_progress_tasks` tasks are in `IN_PROGRESS` state at any given
+moment in time. Please keep in mind that it does not mean that all those tasks are actively being processed by workers,
+since any worker can die and some tasks will remain in `IN_PROGRESS` state until `keepalive_timeout_in_seconds`
+expires. When the limit is reached, `Dequeue` returns a successful empty response.
 
-The mechanism for limiting the number of inflight tasks is implemented inside the Moab queue on the server side and the
-number is maintained regardless of how many workers are pulling tasks from the queue simultaneously.
+The mechanism for limiting the number of in-progress tasks is implemented inside the Moab queue on the server side and
+the number is maintained regardless of how many workers are pulling tasks from the queue simultaneously.
 
 ## Rate Limiting
 
@@ -51,7 +52,7 @@ It is possible to spend all tokens at once. Consider the difference between _1 t
 seconds_. Both buckets are refilled at the same rate (1 token per second), but when buckets are full the latter can 
 release more tokens at once.
 
-If both are configured, rate limiting works together with `max_inflight_tasks` as expected: `Dequeue` returns a
+If both are configured, rate limiting works together with `max_in_progress_tasks` as expected: `Dequeue` returns a
 successful empty response if either of limits is reached.
 
 The mechanism for rate limiting is also implemented inside the Moab queue on the server side and the rate is spread
@@ -64,7 +65,11 @@ Entire dequeuing can be paused simply by setting `dequeuing_settings.dequeuing_p
 paused queue will receive a successful empty response. This can be used by an operator in case of emergency when a queue 
 has tasks in it, but there is a known issue that prevents those tasks from being completed successfully (for example, a 
 dependency is temporarily unavailable). Returning a successful empty response mitigates any panic behavior from workers. 
-It looks just like an empty queue for them, no errors, no need to retry requests.  
+It looks just like an empty queue for them, no errors, no need to retry requests.
 
-Please note that `Dequeue` method is eventually consistent. Queues definitions are cached to reduce the load on control 
-plane. So any change made by `UpdateQueue`, such as changing dequeuing settings, will be propagated here in about 10 seconds.
+Please note that when a queue is paused it does not stop the garbage collector from sweeping expired tasks. All tasks
+will be deleted at their respective `expires_at` time regardless of the queue state.
+
+Also, `Dequeue` method is eventually consistent w.r.t the queue state. Queues definitions are cached to reduce the load
+on control plane. So any change made by `UpdateQueue`, such as changing dequeuing settings, will be propagated here in
+about 1 second.

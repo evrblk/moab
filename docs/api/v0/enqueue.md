@@ -3,7 +3,7 @@
 Puts a batch of tasks into the queue.
 
 Optional parameters `keepalive_timeout_in_seconds`, `expires_at`, and `retry_strategy` override corresponding values from 
-the queue. That means each task can have individual retry strategy within the queue.
+the queue. That means each task can have individual retry strategy within the same queue.
 
 A task can be scheduled into the future by specifying `scheduled_at` timestamp (Unix time in nanoseconds). If it is set
 to 0 it will default to `now` and the task will be available for dequeing immediately.
@@ -14,12 +14,7 @@ empty, then the duplicate will be simply skipped. Fields listed in `overwrite_on
 original task with new values from the duplicate task. `overwrite_on_duplicate` can be set only if `dedupe_key` is set.
 
 __Note:__ This method is eventually consistent. Queues definitions are cached to reduce the load on control plane. So any 
-change made by `UpdateQueue`, such as changing default keepalive timeout, will be reflected here after about 10 seconds.
-
-Response is a list of tasks actually enqueued or modified. Each task has an id which can be used to track task status
-(with `GetTask`) or to delete a task before it is dequeued. Tasks without `dedupe_key` will be enqueued and returned in 
-the response. Deduplicated (without `overwrite_on_duplicate`) tasks will be skipped and not returned in the response. 
-Deduplicated (with some `overwrite_on_duplicate` set) tasks will be modified and returned in the response.
+change made by `UpdateQueue`, such as changing default keepalive timeout, will be reflected here after about 1 second.
 
 ## Request
 
@@ -43,6 +38,13 @@ Deduplicated (with some `overwrite_on_duplicate` set) tasks will be modified and
 
 ## Response
 
+Response is a list of tasks actually enqueued or modified. Each task has an id which can be used to track task status
+(with `GetTask`) or to delete a task before it is dequeued. Tasks without `dedupe_key` will be enqueued and returned in 
+the response. Deduplicated (without `overwrite_on_duplicate`) tasks will be skipped and not returned in the response. 
+Deduplicated (with some `overwrite_on_duplicate` set) tasks will be modified and returned in the response.
+
+* Returns `NotFound` if the queue does not exist.
+
 ```json
 {
   "tasks": [
@@ -59,22 +61,3 @@ Deduplicated (with some `overwrite_on_duplicate` set) tasks will be modified and
   ]
 }
 ```
-
-__EnqueueRequest__
-
-| Parameter  | Type                  |                                             |
-|------------|-----------------------|---------------------------------------------|
-| queue_name | String                | Required, max 128 chars, `/[-_0-9a-zA-Z]*/` |
-| entries    | EnqueueRequestEntry[] | Required, between [1; 10] entries           |
- 
-__EnqueueRequestEntry__
-
-| Parameter                    | Type                 |                                             |
-|------------------------------|----------------------|---------------------------------------------|
-| payload                      | String               | Optional, max 64kb                          |
-| scheduled_at                 | Integer              | Optional, default 0                         |
-| expires_at                   | Integer              | Optional, default 0                         |
-| dedupe_key                   | String               | Optional, max 256 characters, default empty |
-| keepalive_timeout_in_seconds | Integer              | Optional, default 0                         |
-| retry_strategy               | RetryStrategy        | Optional                                    |
-| overwrite_on_duplicate       | OverwriteOnDuplicate |                                             |

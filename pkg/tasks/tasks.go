@@ -1,11 +1,15 @@
 package tasks
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/evrblk/monstera/store"
 	"github.com/evrblk/monstera/utils"
 	"github.com/evrblk/yellowstone-common/honey"
 
 	"github.com/evrblk/moab/pkg/corepb"
+	"github.com/evrblk/moab/pkg/pagination"
 )
 
 // tasksTable is the primary table of tasks, plus every secondary index that
@@ -142,6 +146,95 @@ func (t *tasksTable) delete(txn *store.Txn, taskId *corepb.TaskId) error {
 // particular guaranteed order, regardless of state.
 func (t *tasksTable) ListAll(txn *store.Txn, accountId uint64, queueId uint64) ([]*corepb.Task, error) {
 	return t.table.ListAll(txn, t.tablePK(accountId, queueId))
+}
+
+// listTasksResult mirrors listQueuesResult/listSchedulesResult's shape.
+type listTasksResult struct {
+	Tasks                   []*corepb.Task
+	NextPaginationToken     *corepb.PaginationToken
+	PreviousPaginationToken *corepb.PaginationToken
+}
+
+// List returns a page of tasks belonging to (accountId, queueId), continuing
+// from paginationToken if provided. TASK_STATE_INVALID (unset) lists every
+// task regardless of state, ordered by task id, scanning the primary table
+// directly — the same table ListAll and Get already use. A specific state
+// instead scans that state's own index (queueIndex/inProgressIndex/
+// deadTasksIndex), ordered by that index's own sort key (ScheduledAt/
+// VisibleAt/LastFailedAt respectively) rather than by task id, and resolves
+// each index entry back to its full Task row.
+//
+// Filtering by TASK_STATE_ENQUEUED only lists queueIndex's members (a
+// thread's head, or a non-threaded task) — a non-head thread member, though
+// genuinely ENQUEUED, is excluded. This is the same limitation
+// getAgeOfOldestEnqueuedTask already accepts (see core.go): only a thread's
+// head is ever independently dequeued, so "what's actually waiting to be
+// worked" is the more useful view than "every row technically in this
+// state."
+func (t *tasksTable) List(txn *store.Txn, accountId uint64, queueId uint64, state corepb.TaskState, paginationToken *corepb.PaginationToken, limit int) (*listTasksResult, error) {
+	monsteraToken := pagination.CoreToMonstera(paginationToken)
+
+	switch state {
+	case corepb.TaskState_TASK_STATE_INVALID:
+		result, err := t.table.ListPaginated(txn, t.tablePK(accountId, queueId), monsteraToken, limit)
+		if err != nil {
+			return nil, err
+		}
+
+		tasks := result.Items
+		if monsteraToken != nil && monsteraToken.Reverse {
+			slices.Reverse(tasks)
+		}
+
+		return &listTasksResult{
+			Tasks:                   tasks,
+			NextPaginationToken:     pagination.MonsteraToCore(result.NextPaginationToken),
+			PreviousPaginationToken: pagination.MonsteraToCore(result.PreviousPaginationToken),
+		}, nil
+	case corepb.TaskState_TASK_STATE_ENQUEUED:
+		return t.listFromIndex(txn, accountId, queueId, t.queueIndex, monsteraToken, limit)
+	case corepb.TaskState_TASK_STATE_IN_PROGRESS:
+		return t.listFromIndex(txn, accountId, queueId, t.inProgressIndex, monsteraToken, limit)
+	case corepb.TaskState_TASK_STATE_DEAD:
+		return t.listFromIndex(txn, accountId, queueId, t.deadTasksIndex, monsteraToken, limit)
+	default:
+		return nil, fmt.Errorf("unknown task state: %v", state)
+	}
+}
+
+// listFromIndex resolves a page of one state-index's items (each encoded as
+// timestamp+taskId, per queueIndexItem/inProgressIndexItem/
+// deadTasksIndexItem) back to their full Task rows, preserving the index's
+// sort order.
+func (t *tasksTable) listFromIndex(txn *store.Txn, accountId uint64, queueId uint64, index *honey.OneToManySortedIndex, monsteraToken *honey.PaginationToken, limit int) (*listTasksResult, error) {
+	result, err := index.ListPaginated(txn, t.tablePK(accountId, queueId), monsteraToken, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	items := result.Items
+	if monsteraToken != nil && monsteraToken.Reverse {
+		slices.Reverse(items)
+	}
+
+	tasks := make([]*corepb.Task, len(items))
+	for i, item := range items {
+		task, err := t.Get(txn, &corepb.TaskId{
+			AccountId: accountId,
+			QueueId:   queueId,
+			TaskId:    extractTaskIdFromIndexItem(item),
+		})
+		if err != nil {
+			return nil, err
+		}
+		tasks[i] = task
+	}
+
+	return &listTasksResult{
+		Tasks:                   tasks,
+		NextPaginationToken:     pagination.MonsteraToCore(result.NextPaginationToken),
+		PreviousPaginationToken: pagination.MonsteraToCore(result.PreviousPaginationToken),
+	}, nil
 }
 
 func (t *tasksTable) tablePK(accountId uint64, queueId uint64) []byte {
