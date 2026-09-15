@@ -99,19 +99,10 @@ func (c *Core) Close() {
 }
 
 // CreateQueue creates a new queue for the requesting account, after checking
-// that ExpiresInSeconds is positive, the queue name is not already taken,
-// the account has not reached its max-number-of-queues limit, and the
-// (randomly generated) queue ID does not collide with an existing one.
+// that the queue name is not already taken, the account has not reached its
+// max-number-of-queues limit, and the (randomly generated) queue ID does not
+// collide with an existing one.
 func (c *Core) CreateQueue(req *coreapis.CreateQueueRequest) (*coreapis.CreateQueueResponse, error) {
-	if req.Payload.ExpiresInSeconds <= 0 {
-		return &coreapis.CreateQueueResponse{
-			ApplicationError: mrpc.NewErrorWithContext(
-				mrpc.InvalidRequest,
-				"ExpiresInSeconds should be greater than zero",
-				map[string]string{}),
-		}, nil
-	}
-
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -522,11 +513,11 @@ func (c *Core) SwapQueueId(req *coreapis.SwapQueueIdRequest) (*coreapis.SwapQueu
 }
 
 // CreateSchedule creates a new cron schedule attached to an existing queue,
-// after validating the cron expression and timezone, checking that the
-// (randomly generated) schedule ID does not collide with an existing one,
-// enforcing the account's max-schedules-per-queue limit, and checking that
-// the schedule name is not already taken within the queue. NextScheduledAt
-// is computed from the cron expression and timezone relative to req.Now.
+// after checking that the (randomly generated) schedule ID does not collide
+// with an existing one, enforcing the account's max-schedules-per-queue
+// limit, and checking that the schedule name is not already taken within
+// the queue.NextScheduledAt is computed from the cron
+// expression and timezone relative to req.Now.
 func (c *Core) CreateSchedule(req *coreapis.CreateScheduleRequest) (*coreapis.CreateScheduleResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
@@ -598,30 +589,10 @@ func (c *Core) CreateSchedule(req *coreapis.CreateScheduleRequest) (*coreapis.Cr
 		}, nil
 	}
 
-	// Validating cron expression
-	gron := gronx.New()
-	if !gron.IsValid(req.Payload.Cron) {
-		return &coreapis.CreateScheduleResponse{
-			ApplicationError: mrpc.NewErrorWithContext(
-				mrpc.InvalidRequest,
-				"invalid cron expression",
-				map[string]string{
-					"value": req.Payload.Cron,
-				}),
-		}, nil
-	}
-
-	// Validating timezone
+	// Cron expression and timezone are validated by CreateScheduleRequest.Validate.
 	tz, err := time.LoadLocation(req.Payload.Timezone)
 	if err != nil {
-		return &coreapis.CreateScheduleResponse{
-			ApplicationError: mrpc.NewErrorWithContext(
-				mrpc.InvalidRequest,
-				"invalid timezone",
-				map[string]string{
-					"value": req.Payload.Timezone,
-				}),
-		}, nil
+		return nil, err
 	}
 
 	now := time.Unix(0, req.Now).In(tz)
@@ -729,10 +700,10 @@ func (c *Core) ListSchedules(req *coreapis.ListSchedulesRequest) (*coreapis.List
 	}, nil
 }
 
-// UpdateSchedule overwrites a schedule's mutable settings, re-validates its
-// cron expression and timezone, recomputes NextScheduledAt relative to
-// req.Now, and bumps its version. The schedule is looked up by queue name
-// and schedule name; the name itself cannot be changed.
+// UpdateSchedule overwrites a schedule's mutable settings, recomputes
+// NextScheduledAt relative to req.Now, and bumps its version. The schedule
+// is looked up by queue name and schedule name; the name itself cannot be
+// changed.
 func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest) (*coreapis.UpdateScheduleResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
@@ -767,7 +738,7 @@ func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest) (*coreapis.Up
 				map[string]string{
 					"queue_name":       req.Payload.QueueName,
 					"schedule_name":    req.Payload.ScheduleName,
-					"actual_version":   fmt.Sprintf("%d", queue.Version),
+					"actual_version":   fmt.Sprintf("%d", schedule.Version),
 					"expected_version": fmt.Sprintf("%d", req.Payload.ExpectedVersion),
 				},
 			),
@@ -785,30 +756,10 @@ func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest) (*coreapis.Up
 	schedule.Timezone = req.Payload.Timezone
 	schedule.Version = schedule.Version + 1
 
-	// Validating cron expression
-	gron := gronx.New()
-	if !gron.IsValid(req.Payload.Cron) {
-		return &coreapis.UpdateScheduleResponse{
-			ApplicationError: mrpc.NewErrorWithContext(
-				mrpc.InvalidRequest,
-				"invalid cron expression",
-				map[string]string{
-					"value": req.Payload.Cron,
-				}),
-		}, nil
-	}
-
-	// Validating timezone
+	// Cron expression and timezone are validated by UpdateScheduleRequest.Validate.
 	tz, err := time.LoadLocation(req.Payload.Timezone)
 	if err != nil {
-		return &coreapis.UpdateScheduleResponse{
-			ApplicationError: mrpc.NewErrorWithContext(
-				mrpc.InvalidRequest,
-				"invalid timezone",
-				map[string]string{
-					"value": req.Payload.Timezone,
-				}),
-		}, nil
+		return nil, err
 	}
 
 	// Calculating next tick from now based on a given cron schedule

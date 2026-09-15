@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	moabpb "github.com/evrblk/evrblk-go/moab/v0"
+	"github.com/evrblk/yellowstone-common/validatortest"
 )
 
 func TestValidateEnqueueRequest(t *testing.T) {
@@ -1563,6 +1564,44 @@ func TestValidateDeleteScheduleRequest(t *testing.T) {
 			} else {
 				require.NoError(t, ValidateDeleteScheduleRequest(test.request))
 			}
+		})
+	}
+}
+
+// TestValidatorsCheckAllProtoFields guards against a proto field being added
+// to a request message without a corresponding hand-written check ever being
+// added to its validator: for each ValidateXxxRequest function, it statically
+// verifies (see validatortest.AssertAllFieldsChecked) that every field of the
+// request message is referenced somewhere in the function body.
+func TestValidatorsCheckAllProtoFields(t *testing.T) {
+	tests := []struct {
+		name       string
+		validateFn interface{}
+		skipFields []string
+	}{
+		{name: "EnqueueRequest", validateFn: ValidateEnqueueRequest},
+		{name: "DequeueRequest", validateFn: ValidateDequeueRequest},
+		{name: "PurgeQueueRequest", validateFn: ValidatePurgeQueueRequest},
+		{name: "GetTaskRequest", validateFn: ValidateGetTaskRequest},
+		{name: "ListTasksRequest", validateFn: ValidateListTasksRequest},
+		{name: "ReportStatusRequest", validateFn: ValidateReportStatusRequest},
+		{name: "DeleteTasksRequest", validateFn: ValidateDeleteTasksRequest},
+		{name: "RestartTasksRequest", validateFn: ValidateRestartTasksRequest},
+		{name: "ListQueuesRequest", validateFn: ValidateListQueuesRequest},
+		{name: "GetQueueRequest", validateFn: ValidateGetQueueRequest},
+		{name: "CreateQueueRequest", validateFn: ValidateCreateQueueRequest},
+		{name: "UpdateQueueRequest", validateFn: ValidateUpdateQueueRequest},
+		{name: "DeleteQueueRequest", validateFn: ValidateDeleteQueueRequest},
+		{name: "GetScheduleRequest", validateFn: ValidateGetScheduleRequest},
+		{name: "ListSchedulesRequest", validateFn: ValidateListSchedulesRequest},
+		{name: "CreateScheduleRequest", validateFn: ValidateCreateScheduleRequest},
+		{name: "UpdateScheduleRequest", validateFn: ValidateUpdateScheduleRequest},
+		{name: "DeleteScheduleRequest", validateFn: ValidateDeleteScheduleRequest},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			validatortest.AssertAllFieldsChecked(t, test.validateFn, test.skipFields...)
 		})
 	}
 }

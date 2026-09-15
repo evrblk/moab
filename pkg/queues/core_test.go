@@ -215,7 +215,9 @@ func TestCore_CreateScheduleIDCollision(t *testing.T) {
 }
 
 // Should reject creating a schedule with a syntactically invalid cron
-// expression.
+// expression. The check happens in the validating middleware wrapping
+// Core, not Core itself, but newQueuesCore wraps every test core in it,
+// so it is exercised the same way it is in production.
 func TestCore_CreateScheduleInvalidCron(t *testing.T) {
 	core := newQueuesCore(t)
 
@@ -242,6 +244,37 @@ func TestCore_CreateScheduleInvalidCron(t *testing.T) {
 	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
 
 	// It must not have been persisted under the rejected cron expression.
+	getErr := getScheduleWithError(t, core, accountId, "test_queue", "test_schedule")
+	require.Equal(t, mrpc.NotFound, getErr.Code)
+}
+
+// Should reject creating a schedule with an invalid timezone.
+func TestCore_CreateScheduleInvalidTimezone(t *testing.T) {
+	core := newQueuesCore(t)
+
+	now := time.Now()
+	accountId := rand.Uint64()
+
+	createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue", 20, now)
+
+	resp, err := core.CreateSchedule(&coreapis.CreateScheduleRequest{
+		Payload: &corepb.CreateScheduleRequest{
+			AccountId:                    accountId,
+			QueueName:                    "test_queue",
+			ScheduleId:                   rand.Uint64(),
+			ScheduleName:                 "test_schedule",
+			Cron:                         "*/5 * * * *",
+			Timezone:                     "this is not a timezone at all!!",
+			MaxNumberOfSchedulesPerQueue: 10,
+		},
+		Now: now.UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.ApplicationError)
+	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
+
+	// It must not have been persisted under the rejected timezone.
 	getErr := getScheduleWithError(t, core, accountId, "test_queue", "test_schedule")
 	require.Equal(t, mrpc.NotFound, getErr.Code)
 }
@@ -276,6 +309,72 @@ func TestCore_UpdateQueue(t *testing.T) {
 	// Update nonexistent queue
 	appErr := updateQueueWithError(t, core, accountId, "random_queue", now.Add(3*time.Second))
 	require.Equal(t, mrpc.NotFound, appErr.Code)
+}
+
+// UpdateQueue should enforce optimistic locking: it should reject a request
+// whose ExpectedVersion does not match the queue's actual current version
+// (leaving the queue untouched), and accept one whose ExpectedVersion does
+// match (bumping the version so a subsequent update must supply the new one).
+func TestCore_UpdateQueueOptimisticLocking(t *testing.T) {
+	core := newQueuesCore(t)
+
+	now := time.Now()
+	accountId := rand.Uint64()
+
+	queue := createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue", 20, now)
+	require.EqualValues(t, 1, queue.Version)
+
+	// Wrong expected version: request should be rejected and the queue left untouched.
+	resp, err := core.UpdateQueue(&coreapis.UpdateQueueRequest{
+		Payload: &corepb.UpdateQueueRequest{
+			AccountId:                 accountId,
+			QueueName:                 "test_queue",
+			Description:               "should not be applied",
+			KeepaliveTimeoutInSeconds: 30,
+			ExpiresInSeconds:          14 * 86400,
+			ExpectedVersion:           999,
+		},
+		Now: now.Add(time.Second).UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.Payload)
+	require.NotNil(t, resp.ApplicationError)
+	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
+	require.Equal(t, "1", errorContextValue(resp.ApplicationError, "actual_version"))
+	require.Equal(t, "999", errorContextValue(resp.ApplicationError, "expected_version"))
+
+	fetched := getQueueByName(t, core, accountId, "test_queue")
+	require.Equal(t, "test description", fetched.Description)
+	require.EqualValues(t, 1, fetched.Version)
+
+	// Correct expected version: the update is applied and the version is bumped.
+	updated := updateQueue(t, core, accountId, "test_queue", now.Add(2*time.Second))
+	require.EqualValues(t, 2, updated.Version)
+
+	// The previously correct version (1) is now stale and must be rejected.
+	resp, err = core.UpdateQueue(&coreapis.UpdateQueueRequest{
+		Payload: &corepb.UpdateQueueRequest{
+			AccountId:                 accountId,
+			QueueName:                 "test_queue",
+			Description:               "should not be applied either",
+			KeepaliveTimeoutInSeconds: 30,
+			ExpiresInSeconds:          14 * 86400,
+			ExpectedVersion:           1,
+		},
+		Now: now.Add(3 * time.Second).UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.Payload)
+	require.NotNil(t, resp.ApplicationError)
+	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
+	require.Equal(t, "2", errorContextValue(resp.ApplicationError, "actual_version"))
+	require.Equal(t, "1", errorContextValue(resp.ApplicationError, "expected_version"))
+
+	fetched = getQueueByName(t, core, accountId, "test_queue")
+	require.Equal(t, "test description 2", fetched.Description)
+	require.EqualValues(t, 2, fetched.Version)
 }
 
 func TestCore_ListQueue(t *testing.T) {
@@ -586,6 +685,76 @@ func TestCore_UpdateSchedule(t *testing.T) {
 	require.Equal(t, mrpc.NotFound, appErr.Code)
 }
 
+// UpdateSchedule should enforce optimistic locking: it should reject a
+// request whose ExpectedVersion does not match the schedule's actual current
+// version (leaving the schedule untouched), and accept one whose
+// ExpectedVersion does match (bumping the version so a subsequent update
+// must supply the new one).
+func TestCore_UpdateScheduleOptimisticLocking(t *testing.T) {
+	core := newQueuesCore(t)
+
+	now := time.Date(2024, 11, 9, 9, 31, 13, 0, time.UTC)
+	accountId := rand.Uint64()
+
+	createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue", 20, now)
+	created := createSchedule(t, core, accountId, "test_queue", "test_schedule", now)
+	require.EqualValues(t, 1, created.Version)
+
+	// Wrong expected version: request should be rejected and the schedule left untouched.
+	resp, err := core.UpdateSchedule(&coreapis.UpdateScheduleRequest{
+		Payload: &corepb.UpdateScheduleRequest{
+			AccountId:       accountId,
+			QueueName:       "test_queue",
+			ScheduleName:    "test_schedule",
+			Description:     "should not be applied",
+			Cron:            "*/10 * * * *",
+			Timezone:        "UTC",
+			ExpectedVersion: 999,
+		},
+		Now: now.Add(time.Second).UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.Payload)
+	require.NotNil(t, resp.ApplicationError)
+	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
+	require.Equal(t, "1", errorContextValue(resp.ApplicationError, "actual_version"))
+	require.Equal(t, "999", errorContextValue(resp.ApplicationError, "expected_version"))
+
+	fetched := getSchedule(t, core, accountId, "test_queue", "test_schedule")
+	require.Equal(t, "Just do it!", fetched.Description)
+	require.EqualValues(t, 1, fetched.Version)
+
+	// Correct expected version: the update is applied and the version is bumped.
+	updated := updateSchedule(t, core, accountId, "test_queue", "test_schedule", now.Add(2*time.Second))
+	require.EqualValues(t, 2, updated.Version)
+
+	// The previously correct version (1) is now stale and must be rejected.
+	resp, err = core.UpdateSchedule(&coreapis.UpdateScheduleRequest{
+		Payload: &corepb.UpdateScheduleRequest{
+			AccountId:       accountId,
+			QueueName:       "test_queue",
+			ScheduleName:    "test_schedule",
+			Description:     "should not be applied either",
+			Cron:            "*/10 * * * *",
+			Timezone:        "UTC",
+			ExpectedVersion: 1,
+		},
+		Now: now.Add(3 * time.Second).UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.Payload)
+	require.NotNil(t, resp.ApplicationError)
+	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
+	require.Equal(t, "2", errorContextValue(resp.ApplicationError, "actual_version"))
+	require.Equal(t, "1", errorContextValue(resp.ApplicationError, "expected_version"))
+
+	fetched = getSchedule(t, core, accountId, "test_queue", "test_schedule")
+	require.Equal(t, "Updated description", fetched.Description)
+	require.EqualValues(t, 2, fetched.Version)
+}
+
 // Should reject updating a schedule with a syntactically invalid cron
 // expression, leaving the previously stored schedule untouched.
 func TestCore_UpdateScheduleInvalidCron(t *testing.T) {
@@ -616,6 +785,39 @@ func TestCore_UpdateScheduleInvalidCron(t *testing.T) {
 	// The previously stored schedule (cron and version) must be unchanged.
 	fetched := getSchedule(t, core, accountId, "test_queue", "test_schedule")
 	require.Equal(t, created.Cron, fetched.Cron)
+	require.Equal(t, created.Version, fetched.Version)
+}
+
+// Should reject updating a schedule with an invalid timezone, leaving the
+// previously stored schedule untouched.
+func TestCore_UpdateScheduleInvalidTimezone(t *testing.T) {
+	core := newQueuesCore(t)
+
+	now := time.Date(2024, 11, 9, 9, 31, 13, 0, time.UTC)
+	accountId := rand.Uint64()
+
+	createQueue(t, core, &corepb.QueueId{AccountId: accountId, QueueId: rand.Uint64()}, "test_queue", 20, now)
+	created := createSchedule(t, core, accountId, "test_queue", "test_schedule", now)
+
+	resp, err := core.UpdateSchedule(&coreapis.UpdateScheduleRequest{
+		Payload: &corepb.UpdateScheduleRequest{
+			AccountId:       accountId,
+			QueueName:       "test_queue",
+			ScheduleName:    "test_schedule",
+			Cron:            "*/5 * * * *",
+			Timezone:        "this is not a timezone at all!!",
+			ExpectedVersion: created.Version,
+		},
+		Now: now.Add(time.Second).UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.ApplicationError)
+	require.Equal(t, mrpc.InvalidRequest, resp.ApplicationError.Code)
+
+	// The previously stored schedule (timezone and version) must be unchanged.
+	fetched := getSchedule(t, core, accountId, "test_queue", "test_schedule")
+	require.Equal(t, created.Timezone, fetched.Timezone)
 	require.Equal(t, created.Version, fetched.Version)
 }
 
@@ -699,16 +901,30 @@ func TestCore_SnapshotAndRestore(t *testing.T) {
 	require.Equal(t, "test description", fetched.Queue.Description)
 }
 
-func newQueuesCore(t *testing.T) *Core {
+// newQueuesCore wraps the Core in the same validating middleware the real
+// adapter constructor uses, so tests exercise requests the way production
+// traffic does: Validate runs before the request ever reaches Core.
+func newQueuesCore(t *testing.T) coreapis.MoabQueuesCoreApi {
 	t.Helper()
 
 	badgerStore, err := store.NewBadgerInMemoryStore()
 	require.NoError(t, err)
 
-	return NewCore(badgerStore, []byte{0x1d, 0x36, 0x00, 0x00}, 0x00000000, 0xffffffff)
+	return coreapis.NewMoabQueuesValidatingCore(NewCore(badgerStore, []byte{0x1d, 0x36, 0x00, 0x00}, 0x00000000, 0xffffffff))
 }
 
-func createQueue(t *testing.T, core *Core, queueId *corepb.QueueId, name string, maxNumberOfQueues int64, now time.Time) *corepb.Queue {
+// errorContextValue returns the value of the given key in appErr's
+// structured context, or the empty string if the key is not present.
+func errorContextValue(appErr *mrpc.Error, key string) string {
+	for _, c := range appErr.Context {
+		if c.Key == key {
+			return c.Value
+		}
+	}
+	return ""
+}
+
+func createQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.QueueId, name string, maxNumberOfQueues int64, now time.Time) *corepb.Queue {
 	t.Helper()
 
 	resp, err := core.CreateQueue(&coreapis.CreateQueueRequest{
@@ -748,15 +964,16 @@ func createQueue(t *testing.T, core *Core, queueId *corepb.QueueId, name string,
 	return resp.Payload.Queue
 }
 
-func createQueueWithError(t *testing.T, core *Core, queueId *corepb.QueueId, name string, maxNumberOfQueues int64, now time.Time) *mrpc.Error {
+func createQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.QueueId, name string, maxNumberOfQueues int64, now time.Time) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.CreateQueue(&coreapis.CreateQueueRequest{
 		Payload: &corepb.CreateQueueRequest{
-			QueueId:           queueId,
-			Name:              name,
-			ExpiresInSeconds:  14 * 86400,
-			MaxNumberOfQueues: maxNumberOfQueues,
+			QueueId:                   queueId,
+			Name:                      name,
+			KeepaliveTimeoutInSeconds: 15,
+			ExpiresInSeconds:          14 * 86400,
+			MaxNumberOfQueues:         maxNumberOfQueues,
 		},
 		Now: now.UnixNano(),
 	})
@@ -769,7 +986,7 @@ func createQueueWithError(t *testing.T, core *Core, queueId *corepb.QueueId, nam
 	return resp.ApplicationError
 }
 
-func getQueue(t *testing.T, core *Core, queueId *corepb.QueueId) *corepb.GetQueueResponse {
+func getQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.QueueId) *corepb.GetQueueResponse {
 	t.Helper()
 
 	resp, err := core.GetQueue(&coreapis.GetQueueRequest{
@@ -785,7 +1002,7 @@ func getQueue(t *testing.T, core *Core, queueId *corepb.QueueId) *corepb.GetQueu
 	return resp.Payload
 }
 
-func getQueueWithError(t *testing.T, core *Core, queueId *corepb.QueueId) *mrpc.Error {
+func getQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.QueueId) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.GetQueue(&coreapis.GetQueueRequest{
@@ -800,7 +1017,7 @@ func getQueueWithError(t *testing.T, core *Core, queueId *corepb.QueueId) *mrpc.
 	return resp.ApplicationError
 }
 
-func updateQueue(t *testing.T, core *Core, accountId uint64, queueName string, now time.Time) *corepb.Queue {
+func updateQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, now time.Time) *corepb.Queue {
 	t.Helper()
 
 	resp, err := core.UpdateQueue(&coreapis.UpdateQueueRequest{
@@ -840,7 +1057,7 @@ func updateQueue(t *testing.T, core *Core, accountId uint64, queueName string, n
 	return resp.Payload.Queue
 }
 
-func updateQueueWithError(t *testing.T, core *Core, accountId uint64, queueName string, now time.Time) *mrpc.Error {
+func updateQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, now time.Time) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.UpdateQueue(&coreapis.UpdateQueueRequest{
@@ -849,6 +1066,7 @@ func updateQueueWithError(t *testing.T, core *Core, accountId uint64, queueName 
 			QueueName:                 queueName,
 			Description:               "test description 2",
 			KeepaliveTimeoutInSeconds: 30,
+			ExpiresInSeconds:          14 * 86400,
 		},
 		Now: now.UnixNano(),
 	})
@@ -861,7 +1079,7 @@ func updateQueueWithError(t *testing.T, core *Core, accountId uint64, queueName 
 	return resp.ApplicationError
 }
 
-func deleteQueue(t *testing.T, core *Core, accountId uint64, queueName string) *corepb.DeleteQueueResponse {
+func deleteQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string) *corepb.DeleteQueueResponse {
 	t.Helper()
 
 	resp, err := core.DeleteQueue(&coreapis.DeleteQueueRequest{
@@ -876,7 +1094,7 @@ func deleteQueue(t *testing.T, core *Core, accountId uint64, queueName string) *
 	return resp.Payload
 }
 
-func deleteQueueWithError(t *testing.T, core *Core, accountId uint64, queueName string) *mrpc.Error {
+func deleteQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.DeleteQueue(&coreapis.DeleteQueueRequest{
@@ -890,7 +1108,7 @@ func deleteQueueWithError(t *testing.T, core *Core, accountId uint64, queueName 
 	return resp.ApplicationError
 }
 
-func getQueueByName(t *testing.T, core *Core, accountId uint64, queueName string) *corepb.Queue {
+func getQueueByName(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string) *corepb.Queue {
 	t.Helper()
 
 	resp, err := core.GetQueueByName(&coreapis.GetQueueByNameRequest{
@@ -906,7 +1124,7 @@ func getQueueByName(t *testing.T, core *Core, accountId uint64, queueName string
 	return resp.Payload.Queue
 }
 
-func swapQueueId(t *testing.T, core *Core, accountId uint64, queueName string, newQueueId uint64, now time.Time) *corepb.SwapQueueIdResponse {
+func swapQueueId(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, newQueueId uint64, now time.Time) *corepb.SwapQueueIdResponse {
 	t.Helper()
 
 	resp, err := core.SwapQueueId(&coreapis.SwapQueueIdRequest{
@@ -922,7 +1140,7 @@ func swapQueueId(t *testing.T, core *Core, accountId uint64, queueName string, n
 	return resp.Payload
 }
 
-func swapQueueIdWithError(t *testing.T, core *Core, accountId uint64, queueName string, newQueueId uint64, now time.Time) *mrpc.Error {
+func swapQueueIdWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, newQueueId uint64, now time.Time) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.SwapQueueId(&coreapis.SwapQueueIdRequest{
@@ -937,7 +1155,7 @@ func swapQueueIdWithError(t *testing.T, core *Core, accountId uint64, queueName 
 	return resp.ApplicationError
 }
 
-func createSchedule(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string, now time.Time) *corepb.Schedule {
+func createSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string, now time.Time) *corepb.Schedule {
 	t.Helper()
 
 	resp, err := core.CreateSchedule(&coreapis.CreateScheduleRequest{
@@ -968,7 +1186,7 @@ func createSchedule(t *testing.T, core *Core, accountId uint64, queueName string
 	return resp.Payload.Schedule
 }
 
-func createScheduleWithError(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string, now time.Time) *mrpc.Error {
+func createScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string, now time.Time) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.CreateSchedule(&coreapis.CreateScheduleRequest{
@@ -992,7 +1210,7 @@ func createScheduleWithError(t *testing.T, core *Core, accountId uint64, queueNa
 	return resp.ApplicationError
 }
 
-func getSchedule(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string) *corepb.Schedule {
+func getSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string) *corepb.Schedule {
 	t.Helper()
 
 	resp, err := core.GetSchedule(&coreapis.GetScheduleRequest{
@@ -1008,7 +1226,7 @@ func getSchedule(t *testing.T, core *Core, accountId uint64, queueName string, s
 	return resp.Payload.Schedule
 }
 
-func getScheduleWithError(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string) *mrpc.Error {
+func getScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.GetSchedule(&coreapis.GetScheduleRequest{
@@ -1023,7 +1241,7 @@ func getScheduleWithError(t *testing.T, core *Core, accountId uint64, queueName 
 	return resp.ApplicationError
 }
 
-func updateSchedule(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string, now time.Time) *corepb.Schedule {
+func updateSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string, now time.Time) *corepb.Schedule {
 	t.Helper()
 
 	resp, err := core.UpdateSchedule(&coreapis.UpdateScheduleRequest{
@@ -1053,7 +1271,7 @@ func updateSchedule(t *testing.T, core *Core, accountId uint64, queueName string
 	return resp.Payload.Schedule
 }
 
-func updateScheduleWithError(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string, now time.Time) *mrpc.Error {
+func updateScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string, now time.Time) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.UpdateSchedule(&coreapis.UpdateScheduleRequest{
@@ -1077,7 +1295,7 @@ func updateScheduleWithError(t *testing.T, core *Core, accountId uint64, queueNa
 	return resp.ApplicationError
 }
 
-func deleteSchedule(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string) {
+func deleteSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string) {
 	t.Helper()
 
 	resp, err := core.DeleteSchedule(&coreapis.DeleteScheduleRequest{
@@ -1089,7 +1307,7 @@ func deleteSchedule(t *testing.T, core *Core, accountId uint64, queueName string
 	require.Nil(t, resp.ApplicationError)
 }
 
-func deleteScheduleWithError(t *testing.T, core *Core, accountId uint64, queueName string, scheduleName string) *mrpc.Error {
+func deleteScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64, queueName string, scheduleName string) *mrpc.Error {
 	t.Helper()
 
 	resp, err := core.DeleteSchedule(&coreapis.DeleteScheduleRequest{
@@ -1103,7 +1321,7 @@ func deleteScheduleWithError(t *testing.T, core *Core, accountId uint64, queueNa
 	return resp.ApplicationError
 }
 
-func listSchedules(t *testing.T, core *Core, queueId *corepb.QueueId, paginationToken *corepb.PaginationToken, limit int32) *corepb.ListSchedulesResponse {
+func listSchedules(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.QueueId, paginationToken *corepb.PaginationToken, limit int32) *corepb.ListSchedulesResponse {
 	t.Helper()
 
 	resp, err := core.ListSchedules(&coreapis.ListSchedulesRequest{
@@ -1122,7 +1340,7 @@ func listSchedules(t *testing.T, core *Core, queueId *corepb.QueueId, pagination
 	return resp.Payload
 }
 
-func runQueuesGarbageCollection(t *testing.T, core *Core, gcRecordsPageSize int32, gcRecordSchedulesPageSize int32, maxVisitedSchedules int32) {
+func runQueuesGarbageCollection(t *testing.T, core coreapis.MoabQueuesCoreApi, gcRecordsPageSize int32, gcRecordSchedulesPageSize int32, maxVisitedSchedules int32) {
 	t.Helper()
 
 	resp, err := core.RunQueuesGarbageCollection(&coreapis.RunQueuesGarbageCollectionRequest{
@@ -1138,7 +1356,7 @@ func runQueuesGarbageCollection(t *testing.T, core *Core, gcRecordsPageSize int3
 	require.Nil(t, resp.ApplicationError)
 }
 
-func dequeSchedules(t *testing.T, core *Core, dueBefore int64) []*corepb.DequeSchedulesResponseEntry {
+func dequeSchedules(t *testing.T, core coreapis.MoabQueuesCoreApi, dueBefore int64) []*corepb.DequeSchedulesResponseEntry {
 	t.Helper()
 
 	resp, err := core.DequeSchedules(&coreapis.DequeSchedulesRequest{

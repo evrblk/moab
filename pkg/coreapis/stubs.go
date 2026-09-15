@@ -28,6 +28,10 @@ type MoabMonsteraStub struct {
 var _ MoabClientApi = &MoabMonsteraStub{}
 
 func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQueueRequest) (*corepb.GetQueueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -63,6 +67,10 @@ func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQu
 }
 
 func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb.GetQueueByNameRequest) (*corepb.GetQueueByNameResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -98,6 +106,10 @@ func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb
 }
 
 func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.ListQueuesRequest) (*corepb.ListQueuesResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -133,6 +145,10 @@ func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.Lis
 }
 
 func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.GetScheduleRequest) (*corepb.GetScheduleResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -168,6 +184,10 @@ func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.Ge
 }
 
 func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb.DequeSchedulesRequest, shardId string) (*corepb.DequeSchedulesResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -203,6 +223,10 @@ func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb
 }
 
 func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.ListSchedulesRequest) (*corepb.ListSchedulesResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -238,6 +262,10 @@ func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.
 }
 
 func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.CreateQueueRequest) (*corepb.CreateQueueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -273,6 +301,10 @@ func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.Cr
 }
 
 func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.UpdateQueueRequest) (*corepb.UpdateQueueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -308,6 +340,10 @@ func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.Up
 }
 
 func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.DeleteQueueRequest) (*corepb.DeleteQueueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -343,6 +379,10 @@ func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.De
 }
 
 func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb.CreateScheduleRequest) (*corepb.CreateScheduleResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -378,6 +418,10 @@ func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb
 }
 
 func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb.UpdateScheduleRequest) (*corepb.UpdateScheduleResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -413,6 +457,10 @@ func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb
 }
 
 func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb.DeleteScheduleRequest) (*corepb.DeleteScheduleResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -448,6 +496,10 @@ func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb
 }
 
 func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq *corepb.ReportSchedulesStatusRequest, shardId string) (*corepb.ReportSchedulesStatusResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -483,6 +535,10 @@ func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq 
 }
 
 func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, methodReq *corepb.RunQueuesGarbageCollectionRequest, shardId string) (*corepb.RunQueuesGarbageCollectionResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -518,6 +574,10 @@ func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, metho
 }
 
 func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.SwapQueueIdRequest) (*corepb.SwapQueueIdResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -553,6 +613,10 @@ func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.Sw
 }
 
 func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTaskRequest) (*corepb.GetTaskResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -588,6 +652,10 @@ func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTas
 }
 
 func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.GetStatisticsRequest) (*corepb.GetStatisticsResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -623,6 +691,10 @@ func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.
 }
 
 func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.ListTasksRequest) (*corepb.ListTasksResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -658,6 +730,10 @@ func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.List
 }
 
 func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.EnqueueRequest) (*corepb.EnqueueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -693,6 +769,10 @@ func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.Enqueu
 }
 
 func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.DequeueRequest) (*corepb.DequeueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -728,6 +808,10 @@ func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.Dequeu
 }
 
 func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.ReportStatusRequest) (*corepb.ReportStatusResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -763,6 +847,10 @@ func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.R
 }
 
 func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.DeleteTasksRequest) (*corepb.DeleteTasksResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -798,6 +886,10 @@ func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.De
 }
 
 func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.RestartTasksRequest) (*corepb.RestartTasksResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -833,6 +925,10 @@ func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.R
 }
 
 func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.PurgeQueueRequest) (*corepb.PurgeQueueResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -868,6 +964,10 @@ func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.Pur
 }
 
 func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, methodReq *corepb.RunTasksGarbageCollectionRequest, shardId string) (*corepb.RunTasksGarbageCollectionResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -903,6 +1003,10 @@ func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, method
 }
 
 func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, methodReq *corepb.RunPurgeQueueGarbageCollectionRequest, shardId string) (*corepb.RunPurgeQueueGarbageCollectionResponse, error) {
+	if err := methodReq.Validate(); err != nil {
+		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
+	}
+
 	methodReqBytes, err := methodReq.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)

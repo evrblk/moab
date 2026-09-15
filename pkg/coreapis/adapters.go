@@ -51,7 +51,7 @@ var _ monstera.ApplicationCore = &MoabQueuesCoreAdapter{}
 
 func NewMoabQueuesCoreAdapter(nodeId string, shardId string, replicaId string, shardLowerBound cluster.ShardKey, shardUpperBound cluster.ShardKey, moabQueuesCore MoabQueuesCoreApi) *MoabQueuesCoreAdapter {
 	return &MoabQueuesCoreAdapter{
-		moabQueuesCore:  moabQueuesCore,
+		moabQueuesCore:  NewMoabQueuesValidatingCore(moabQueuesCore),
 		nodeId:          nodeId,
 		replicaId:       replicaId,
 		shardId:         shardId,
@@ -535,7 +535,7 @@ var _ monstera.ApplicationCore = &MoabTasksCoreAdapter{}
 
 func NewMoabTasksCoreAdapter(nodeId string, shardId string, replicaId string, shardLowerBound cluster.ShardKey, shardUpperBound cluster.ShardKey, moabTasksCore MoabTasksCoreApi) *MoabTasksCoreAdapter {
 	return &MoabTasksCoreAdapter{
-		moabTasksCore:   moabTasksCore,
+		moabTasksCore:   NewMoabTasksValidatingCore(moabTasksCore),
 		nodeId:          nodeId,
 		replicaId:       replicaId,
 		shardId:         shardId,

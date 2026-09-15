@@ -1,6 +1,7 @@
 package v0
 
 import (
+	"encoding/base64"
 	"fmt"
 	"regexp"
 	"time"
@@ -9,11 +10,14 @@ import (
 
 	moabpb "github.com/evrblk/evrblk-go/moab/v0"
 	"github.com/evrblk/moab/pkg/ids"
+	"github.com/evrblk/moab/pkg/pagination"
 )
 
 const (
 	maxNameLength        = 128
 	maxDescriptionLength = 1024
+
+	maxPaginationTokenLength = 1024
 
 	maxDedupeKeyLength = 256
 
@@ -145,6 +149,14 @@ func ValidateListTasksRequest(req *moabpb.ListTasksRequest) error {
 		return invalid("ListTasksRequest.State", "unrecognized value")
 	}
 
+	if err := validatePaginationToken(req.PaginationToken, "ListTasksRequest.PaginationToken"); err != nil {
+		return err
+	}
+
+	if err := validateLimit(req.Limit, "ListTasksRequest.Limit"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -228,7 +240,15 @@ func ValidateRestartTasksRequest(req *moabpb.RestartTasksRequest) error {
 	return nil
 }
 
-func ValidateListQueuesRequest(_ *moabpb.ListQueuesRequest) error {
+func ValidateListQueuesRequest(req *moabpb.ListQueuesRequest) error {
+	if err := validatePaginationToken(req.PaginationToken, "ListQueuesRequest.PaginationToken"); err != nil {
+		return err
+	}
+
+	if err := validateLimit(req.Limit, "ListQueuesRequest.Limit"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -330,6 +350,14 @@ func ValidateGetScheduleRequest(req *moabpb.GetScheduleRequest) error {
 
 func ValidateListSchedulesRequest(req *moabpb.ListSchedulesRequest) error {
 	if err := validateQueueName(req.QueueName, "ListSchedulesRequest.QueueName"); err != nil {
+		return err
+	}
+
+	if err := validatePaginationToken(req.PaginationToken, "ListSchedulesRequest.PaginationToken"); err != nil {
+		return err
+	}
+
+	if err := validateLimit(req.Limit, "ListSchedulesRequest.Limit"); err != nil {
 		return err
 	}
 
@@ -604,6 +632,27 @@ func validateDeadLetterQueueConfig(value *moabpb.DeadLetterQueueConfig, fieldNam
 
 	if value.RetentionPeriodInSeconds < minExpiresTimeoutInSeconds || value.RetentionPeriodInSeconds > maxDLQRetentionPeriod {
 		return invalid(fmt.Sprintf("%s.RetentionPeriodInSeconds", fieldName), fmt.Sprintf("retention period must be between %d and %d seconds", minExpiresTimeoutInSeconds, maxDLQRetentionPeriod))
+	}
+
+	return nil
+}
+
+func validatePaginationToken(value string, fieldName string) error {
+	if len(value) > maxPaginationTokenLength {
+		return invalid(fieldName, fmt.Sprintf("exceeds max length (%d)", maxPaginationTokenLength))
+	}
+
+	_, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return invalid(fieldName, "must be a valid base64 string")
+	}
+
+	return nil
+}
+
+func validateLimit(value int32, fieldName string) error {
+	if value < 0 || value > pagination.MaxPaginationLimit {
+		return invalid(fieldName, fmt.Sprintf("must be between 0 and %d", pagination.MaxPaginationLimit))
 	}
 
 	return nil
