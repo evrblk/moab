@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+./load-generator
 
 # Test binary, built with `go test -c`
 *.test

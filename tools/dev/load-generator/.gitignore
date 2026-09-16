@@ -1,0 +1,5 @@
+# Binary
+load-generator
+
+# Profiling data
+*.prof
