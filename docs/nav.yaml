@@ -10,3 +10,6 @@ sections:
       - expiration.md
       - dequeuing-settings.md
       - schedules.md
+
+  - title: API Reference
+    dir: api/v0

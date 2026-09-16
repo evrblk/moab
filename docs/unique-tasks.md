@@ -20,4 +20,10 @@ the same job several times it can be rescheduled instead.
 
 ![Unique tasks](/docs/images/unique-3.png)
 
-__TODO dead?__
+Dedupe keys guard live uniqueness, not historical identity. A `DedupeKey` is claimed by
+at most one live (`ENQUEUED` or `IN_PROGRESS`) task at a time. It is released the instant a task
+stops being live — on success, on delete, and on death — so a fresh task can reuse the key
+immediately after a failure. Because of that, any *out-of-band* resurrection of an old task under
+that key (i.e. `RestartTasks`) must re-validate the key against current state rather than assume
+it's still free — restart is not exempt from the live-uniqueness guarantee just because it's an
+explicit operator action.

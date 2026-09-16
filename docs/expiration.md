@@ -10,7 +10,7 @@ would be handed back to `ENQUEUED` or filed to `DEAD`. It is never evaluated whi
 and being renewed, and it never overrides an explicit `SUCCEEDED`. A background GC sweep additionally reaps `ENQUEUED`
 and `DEAD` rows nobody is actively polling — but it must never touch `IN_PROGRESS` rows.
 
-Internally, all tasks are indexed by `expires_at` (Expiration index). Pictured below, a task `A` is sheduled at `t1` \
+Internally, all tasks are indexed by `expires_at` (Expiration index). Pictured below, a task `A` is sheduled at `t1`
 and will expire in `e` seconds (queue retention period) at moment `t1 + e`:
 
 ![Expiration](/docs/images/expiration-1.png)
@@ -24,9 +24,6 @@ Expiration happens under the hood, tasks will be garbage collected when `expires
 
 ![Expiration](/docs/images/expiration-3.png)
 
-[//]: # (TODO expiration and retries)
-
-
 There is no unlimited expiration: every task expires, and every DLQ entry expires.
 * `queue.expires_in_seconds` is required and bounded on `CreateQueue`/`UpdateQueue`. It cannot be 0, and it cannot be
   unbounded — "long" is fine (weeks), "forever" is not.
@@ -38,6 +35,13 @@ There is no unlimited expiration: every task expires, and every DLQ entry expire
   that ceiling, not rejected — consistent with how `ScheduledAt` already clamps up to `now` rather
   than rejecting a past-scheduled entry (`pkg/tasks/core.go`'s `Enqueue`).
 
-The one deliberately unbounded knob left is `DeadLetterQueueConfig.max_size` (`0` = unlimited
-*count*) — a different axis (how many dead rows to keep) from expiration (how long to keep any one
-of them), and out of scope for this law.
+The one deliberately unbounded knob left is `DeadLetterQueueConfig.max_size` (`0` = unlimited *count*) — a different
+axis (how many dead rows to keep) from expiration (how long to keep any one of them), and out of scope for this law.
+
+One deadline field, state-dependent meaning. `ExpiresAt` means three different things depending on state, and a task 
+only ever has one of them active at a time:
+* `ENQUEUED`: "don't bother dequeuing me after this" (a delivery deadline, anchored at `ScheduledAt + ExpiresInSeconds`,
+  computed once at creation/restart).
+* `IN_PROGRESS`: inert. Not enforced while the lease is being renewed.
+* `DEAD`: "purge me from the DLQ after this" (a retention deadline, anchored at `LastFailedAt + 
+  DeadLetterQueueConfig.retention_period_in_seconds`, recomputed at the moment of death).
