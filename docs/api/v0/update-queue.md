@@ -9,6 +9,8 @@ if there were no effective changes.
 
 ## Request
 
+* `expected_version` is required, must match the queue's current `version` (optimistic concurrency check).
+
 ```json
 {
   "queue_name": "MyQueue1",
@@ -26,17 +28,19 @@ if there were no effective changes.
     },
     "dequeuing_paused": false
   },
-  "dead_tasks_set_config": {
+  "dead_letter_queue_config": {
     "enable": true,
     "max_size": 0,
     "retention_period_in_seconds": 86400
-  }
+  },
+  "expected_version": 1
 }
 ```
 
 ## Response
 
 * Returns `NotFound` if the queue does not exist.
+* Returns `InvalidRequest` if `expected_version` does not match the queue's current version.
 
 ```json
 {
@@ -59,7 +63,7 @@ if there were no effective changes.
       },
       "dequeuing_paused": false
     },
-    "dead_tasks_set_config": {
+    "dead_letter_queue_config": {
       "enable": true,
       "max_size": 0,
       "retention_period_in_seconds": 86400
@@ -80,13 +84,13 @@ __UpdateQueueRequest__
 | retry_strategy               | RetryStrategy         | Optional, default no retries                    |
 | dequeuing_settings           | DequeuingSettings     | Optional                                        |
 | dead_letter_queue_config     | DeadLetterQueueConfig | Optional                                        |
+| expected_version             | Integer               | Required, must equal the queue's current version |
 
 __RetryStrategy__
 
-| Parameter                    | Type               |                                         |
-|------------------------------|--------------------|-----------------------------------------|
-| name                         | String             | Required, max 128 chars                 |
-| description                  | String             | Optional, max 1024 chars, default empty |
+| Parameter                    | Type          |                                                                  |
+|------------------------------|---------------|------------------------------------------------------------------|
+| retry_intervals_in_seconds   | List<Integer> | Optional, at most 21 entries, each between [0; 900], default none |
 
 __DequeuingSettings__
 

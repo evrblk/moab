@@ -9,7 +9,8 @@ tasks already enqueued, and they will not be deleted from the queue when corresp
 
 ```json
 {
-  "schedule_id": "schdl_nNreHT35hyTfFJqxqrouYHQipj82dJuqB"
+  "queue_name": "SquirrelQueue",
+  "schedule_name": "DailyFeeder"
 }
 ```
 
