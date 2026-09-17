@@ -27,7 +27,10 @@ type MoabMonsteraStub struct {
 
 var _ MoabClientApi = &MoabMonsteraStub{}
 
-func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQueueRequest) (*corepb.GetQueueResponse, error) {
+func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQueueRequest, opts ...mrpc.CallOption) (*corepb.GetQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -38,9 +41,10 @@ func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQu
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 1,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     1,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -63,10 +67,20 @@ func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQu
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb.GetQueueByNameRequest) (*corepb.GetQueueByNameResponse, error) {
+func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb.GetQueueByNameRequest, opts ...mrpc.CallOption) (*corepb.GetQueueByNameResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -77,9 +91,10 @@ func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 2,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     2,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -102,10 +117,20 @@ func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.ListQueuesRequest) (*corepb.ListQueuesResponse, error) {
+func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.ListQueuesRequest, opts ...mrpc.CallOption) (*corepb.ListQueuesResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -116,9 +141,10 @@ func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.Lis
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 3,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     3,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -141,10 +167,20 @@ func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.Lis
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.GetScheduleRequest) (*corepb.GetScheduleResponse, error) {
+func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.GetScheduleRequest, opts ...mrpc.CallOption) (*corepb.GetScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -155,9 +191,10 @@ func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.Ge
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 4,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     4,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -180,10 +217,20 @@ func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.Ge
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb.DequeSchedulesRequest, shardId string) (*corepb.DequeSchedulesResponse, error) {
+func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb.DequeSchedulesRequest, shardId string, opts ...mrpc.CallOption) (*corepb.DequeSchedulesResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -194,9 +241,10 @@ func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 5,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     5,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -219,10 +267,20 @@ func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.ListSchedulesRequest) (*corepb.ListSchedulesResponse, error) {
+func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.ListSchedulesRequest, opts ...mrpc.CallOption) (*corepb.ListSchedulesResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -233,9 +291,10 @@ func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 6,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     6,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -258,10 +317,20 @@ func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.CreateQueueRequest) (*corepb.CreateQueueResponse, error) {
+func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.CreateQueueRequest, opts ...mrpc.CallOption) (*corepb.CreateQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -272,9 +341,10 @@ func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.Cr
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 1,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     1,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -297,10 +367,20 @@ func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.Cr
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.UpdateQueueRequest) (*corepb.UpdateQueueResponse, error) {
+func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.UpdateQueueRequest, opts ...mrpc.CallOption) (*corepb.UpdateQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -311,9 +391,10 @@ func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.Up
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 2,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     2,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -336,10 +417,20 @@ func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.Up
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.DeleteQueueRequest) (*corepb.DeleteQueueResponse, error) {
+func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.DeleteQueueRequest, opts ...mrpc.CallOption) (*corepb.DeleteQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -350,9 +441,10 @@ func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.De
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 3,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     3,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -375,10 +467,20 @@ func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.De
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb.CreateScheduleRequest) (*corepb.CreateScheduleResponse, error) {
+func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb.CreateScheduleRequest, opts ...mrpc.CallOption) (*corepb.CreateScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -389,9 +491,10 @@ func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 4,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     4,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -414,10 +517,20 @@ func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb.UpdateScheduleRequest) (*corepb.UpdateScheduleResponse, error) {
+func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb.UpdateScheduleRequest, opts ...mrpc.CallOption) (*corepb.UpdateScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -428,9 +541,10 @@ func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 5,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     5,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -453,10 +567,20 @@ func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb.DeleteScheduleRequest) (*corepb.DeleteScheduleResponse, error) {
+func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb.DeleteScheduleRequest, opts ...mrpc.CallOption) (*corepb.DeleteScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -467,9 +591,10 @@ func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 6,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     6,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -492,10 +617,20 @@ func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq *corepb.ReportSchedulesStatusRequest, shardId string) (*corepb.ReportSchedulesStatusResponse, error) {
+func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq *corepb.ReportSchedulesStatusRequest, shardId string, opts ...mrpc.CallOption) (*corepb.ReportSchedulesStatusResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -506,9 +641,10 @@ func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq 
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 7,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     7,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -531,10 +667,20 @@ func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq 
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, methodReq *corepb.RunQueuesGarbageCollectionRequest, shardId string) (*corepb.RunQueuesGarbageCollectionResponse, error) {
+func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, methodReq *corepb.RunQueuesGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunQueuesGarbageCollectionResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -545,9 +691,10 @@ func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, metho
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 8,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     8,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -570,10 +717,20 @@ func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, metho
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.SwapQueueIdRequest) (*corepb.SwapQueueIdResponse, error) {
+func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.SwapQueueIdRequest, opts ...mrpc.CallOption) (*corepb.SwapQueueIdResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -584,9 +741,10 @@ func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.Sw
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 9,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     9,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -609,10 +767,20 @@ func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.Sw
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTaskRequest) (*corepb.GetTaskResponse, error) {
+func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTaskRequest, opts ...mrpc.CallOption) (*corepb.GetTaskResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -623,9 +791,10 @@ func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTas
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 1,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     1,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -648,10 +817,20 @@ func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTas
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.GetStatisticsRequest) (*corepb.GetStatisticsResponse, error) {
+func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.GetStatisticsRequest, opts ...mrpc.CallOption) (*corepb.GetStatisticsResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -662,9 +841,10 @@ func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 2,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     2,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -687,10 +867,20 @@ func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.ListTasksRequest) (*corepb.ListTasksResponse, error) {
+func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.ListTasksRequest, opts ...mrpc.CallOption) (*corepb.ListTasksResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -701,9 +891,10 @@ func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.List
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 3,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     3,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -726,10 +917,20 @@ func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.List
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.EnqueueRequest) (*corepb.EnqueueResponse, error) {
+func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.EnqueueRequest, opts ...mrpc.CallOption) (*corepb.EnqueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -740,9 +941,10 @@ func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.Enqueu
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 1,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     1,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -765,10 +967,20 @@ func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.Enqueu
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.DequeueRequest) (*corepb.DequeueResponse, error) {
+func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.DequeueRequest, opts ...mrpc.CallOption) (*corepb.DequeueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -779,9 +991,10 @@ func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.Dequeu
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 2,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     2,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -804,10 +1017,20 @@ func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.Dequeu
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.ReportStatusRequest) (*corepb.ReportStatusResponse, error) {
+func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.ReportStatusRequest, opts ...mrpc.CallOption) (*corepb.ReportStatusResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -818,9 +1041,10 @@ func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.R
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 3,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     3,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -843,10 +1067,20 @@ func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.R
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.DeleteTasksRequest) (*corepb.DeleteTasksResponse, error) {
+func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.DeleteTasksRequest, opts ...mrpc.CallOption) (*corepb.DeleteTasksResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -857,9 +1091,10 @@ func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.De
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 4,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     4,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -882,10 +1117,20 @@ func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.De
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.RestartTasksRequest) (*corepb.RestartTasksResponse, error) {
+func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.RestartTasksRequest, opts ...mrpc.CallOption) (*corepb.RestartTasksResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -896,9 +1141,10 @@ func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.R
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 5,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     5,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -921,10 +1167,20 @@ func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.R
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.PurgeQueueRequest) (*corepb.PurgeQueueResponse, error) {
+func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.PurgeQueueRequest, opts ...mrpc.CallOption) (*corepb.PurgeQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -935,9 +1191,10 @@ func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.Pur
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 6,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     6,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -960,10 +1217,20 @@ func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.Pur
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, methodReq *corepb.RunTasksGarbageCollectionRequest, shardId string) (*corepb.RunTasksGarbageCollectionResponse, error) {
+func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, methodReq *corepb.RunTasksGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunTasksGarbageCollectionResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -974,9 +1241,10 @@ func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, method
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 7,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     7,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -999,10 +1267,20 @@ func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, method
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
+	}
+
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
 }
 
-func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, methodReq *corepb.RunPurgeQueueGarbageCollectionRequest, shardId string) (*corepb.RunPurgeQueueGarbageCollectionResponse, error) {
+func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, methodReq *corepb.RunPurgeQueueGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunPurgeQueueGarbageCollectionResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	if err := methodReq.Validate(); err != nil {
 		return nil, mrpc.NewError(mrpc.InvalidRequest, err.Error())
 	}
@@ -1013,9 +1291,10 @@ func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, m
 	}
 
 	rpcReq := &mrpc.Request{
-		Data:         methodReqBytes,
-		MethodNumber: 8,
-		Now:          time.Now().UnixNano(),
+		Data:             methodReqBytes,
+		IdempotencyToken: settings.IdempotencyToken,
+		MethodNumber:     8,
+		Now:              now,
 	}
 	rpcReqBytes, err := rpcReq.MarshalVT()
 	if err != nil {
@@ -1036,6 +1315,13 @@ func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, m
 	err = methodResp.UnmarshalBinary(rpcResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{
+			Now:          now,
+			RaftLogIndex: rpcResp.RaftLogIndex,
+		}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -1084,7 +1370,10 @@ type MoabNonclusteredStub struct {
 
 var _ MoabClientApi = &MoabNonclusteredStub{}
 
-func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueueRequest) (*corepb.GetQueueResponse, error) {
+func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueueRequest, opts ...mrpc.CallOption) (*corepb.GetQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1092,7 +1381,7 @@ func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueu
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.GetQueue(&mrpc.ReadRequest[*corepb.GetQueueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1102,6 +1391,9 @@ func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueu
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1109,7 +1401,10 @@ func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueu
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.GetQueueByNameRequest) (*corepb.GetQueueByNameResponse, error) {
+func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.GetQueueByNameRequest, opts ...mrpc.CallOption) (*corepb.GetQueueByNameResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1117,7 +1412,7 @@ func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.G
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.GetQueueByName(&mrpc.ReadRequest[*corepb.GetQueueByNameRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1127,6 +1422,9 @@ func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.G
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1134,7 +1432,10 @@ func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.G
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQueuesRequest) (*corepb.ListQueuesResponse, error) {
+func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQueuesRequest, opts ...mrpc.CallOption) (*corepb.ListQueuesResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1142,7 +1443,7 @@ func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQ
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.ListQueues(&mrpc.ReadRequest[*corepb.ListQueuesRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1152,6 +1453,9 @@ func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQ
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1159,7 +1463,10 @@ func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQ
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetScheduleRequest) (*corepb.GetScheduleResponse, error) {
+func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetScheduleRequest, opts ...mrpc.CallOption) (*corepb.GetScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1167,7 +1474,7 @@ func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetS
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.GetSchedule(&mrpc.ReadRequest[*corepb.GetScheduleRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1176,6 +1483,9 @@ func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetS
 			err = nilifyIfEmpty(resp.ApplicationError)
 			if err != nil {
 				return nil, err
+			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 			}
 			return resp.Payload, nil
 		}
@@ -1184,14 +1494,17 @@ func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetS
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) DequeSchedules(ctx context.Context, req *corepb.DequeSchedulesRequest, shardId string) (*corepb.DequeSchedulesResponse, error) {
+func (s *MoabNonclusteredStub) DequeSchedules(ctx context.Context, req *corepb.DequeSchedulesRequest, shardId string, opts ...mrpc.CallOption) (*corepb.DequeSchedulesResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	for _, adapter := range s.moabQueuesCores {
 		if adapter.id == shardId {
 			adapter.mu.RLock()
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.DequeSchedules(&mrpc.ReadUnshardedRequest[*corepb.DequeSchedulesRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1201,6 +1514,9 @@ func (s *MoabNonclusteredStub) DequeSchedules(ctx context.Context, req *corepb.D
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1208,7 +1524,10 @@ func (s *MoabNonclusteredStub) DequeSchedules(ctx context.Context, req *corepb.D
 	return nil, fmt.Errorf("no shard found for shardId: %s", shardId)
 }
 
-func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.ListSchedulesRequest) (*corepb.ListSchedulesResponse, error) {
+func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.ListSchedulesRequest, opts ...mrpc.CallOption) (*corepb.ListSchedulesResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1216,7 +1535,7 @@ func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.Li
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.ListSchedules(&mrpc.ReadRequest[*corepb.ListSchedulesRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1226,6 +1545,9 @@ func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.Li
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1233,7 +1555,10 @@ func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.Li
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.CreateQueueRequest) (*corepb.CreateQueueResponse, error) {
+func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.CreateQueueRequest, opts ...mrpc.CallOption) (*corepb.CreateQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1241,7 +1566,7 @@ func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.Crea
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.CreateQueue(&mrpc.UpdateRequest[*corepb.CreateQueueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1251,6 +1576,9 @@ func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.Crea
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1258,7 +1586,10 @@ func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.Crea
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.UpdateQueueRequest) (*corepb.UpdateQueueResponse, error) {
+func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.UpdateQueueRequest, opts ...mrpc.CallOption) (*corepb.UpdateQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1266,7 +1597,7 @@ func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.Upda
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.UpdateQueue(&mrpc.UpdateRequest[*corepb.UpdateQueueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1276,6 +1607,9 @@ func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.Upda
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1283,7 +1617,10 @@ func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.Upda
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.DeleteQueueRequest) (*corepb.DeleteQueueResponse, error) {
+func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.DeleteQueueRequest, opts ...mrpc.CallOption) (*corepb.DeleteQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1291,7 +1628,7 @@ func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.Dele
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.DeleteQueue(&mrpc.UpdateRequest[*corepb.DeleteQueueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1301,6 +1638,9 @@ func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.Dele
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1308,7 +1648,10 @@ func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.Dele
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.CreateScheduleRequest) (*corepb.CreateScheduleResponse, error) {
+func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.CreateScheduleRequest, opts ...mrpc.CallOption) (*corepb.CreateScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1316,7 +1659,7 @@ func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.C
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.CreateSchedule(&mrpc.UpdateRequest[*corepb.CreateScheduleRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1326,6 +1669,9 @@ func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.C
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1333,7 +1679,10 @@ func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.C
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.UpdateScheduleRequest) (*corepb.UpdateScheduleResponse, error) {
+func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.UpdateScheduleRequest, opts ...mrpc.CallOption) (*corepb.UpdateScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1341,7 +1690,7 @@ func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.U
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.UpdateSchedule(&mrpc.UpdateRequest[*corepb.UpdateScheduleRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1351,6 +1700,9 @@ func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.U
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1358,7 +1710,10 @@ func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.U
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.DeleteScheduleRequest) (*corepb.DeleteScheduleResponse, error) {
+func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.DeleteScheduleRequest, opts ...mrpc.CallOption) (*corepb.DeleteScheduleResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1366,7 +1721,7 @@ func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.D
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.DeleteSchedule(&mrpc.UpdateRequest[*corepb.DeleteScheduleRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1375,6 +1730,9 @@ func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.D
 			err = nilifyIfEmpty(resp.ApplicationError)
 			if err != nil {
 				return nil, err
+			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 			}
 			return resp.Payload, nil
 		}
@@ -1383,14 +1741,17 @@ func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.D
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) ReportSchedulesStatus(ctx context.Context, req *corepb.ReportSchedulesStatusRequest, shardId string) (*corepb.ReportSchedulesStatusResponse, error) {
+func (s *MoabNonclusteredStub) ReportSchedulesStatus(ctx context.Context, req *corepb.ReportSchedulesStatusRequest, shardId string, opts ...mrpc.CallOption) (*corepb.ReportSchedulesStatusResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	for _, adapter := range s.moabQueuesCores {
 		if adapter.id == shardId {
 			adapter.mu.Lock()
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.ReportSchedulesStatus(&mrpc.UpdateUnshardedRequest[*corepb.ReportSchedulesStatusRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1400,6 +1761,9 @@ func (s *MoabNonclusteredStub) ReportSchedulesStatus(ctx context.Context, req *c
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1407,14 +1771,17 @@ func (s *MoabNonclusteredStub) ReportSchedulesStatus(ctx context.Context, req *c
 	return nil, fmt.Errorf("no shard found for shardId: %s", shardId)
 }
 
-func (s *MoabNonclusteredStub) RunQueuesGarbageCollection(ctx context.Context, req *corepb.RunQueuesGarbageCollectionRequest, shardId string) (*corepb.RunQueuesGarbageCollectionResponse, error) {
+func (s *MoabNonclusteredStub) RunQueuesGarbageCollection(ctx context.Context, req *corepb.RunQueuesGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunQueuesGarbageCollectionResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	for _, adapter := range s.moabQueuesCores {
 		if adapter.id == shardId {
 			adapter.mu.Lock()
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.RunQueuesGarbageCollection(&mrpc.UpdateUnshardedRequest[*corepb.RunQueuesGarbageCollectionRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1424,6 +1791,9 @@ func (s *MoabNonclusteredStub) RunQueuesGarbageCollection(ctx context.Context, r
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1431,7 +1801,10 @@ func (s *MoabNonclusteredStub) RunQueuesGarbageCollection(ctx context.Context, r
 	return nil, fmt.Errorf("no shard found for shardId: %s", shardId)
 }
 
-func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.SwapQueueIdRequest) (*corepb.SwapQueueIdResponse, error) {
+func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.SwapQueueIdRequest, opts ...mrpc.CallOption) (*corepb.SwapQueueIdResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabQueuesCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1439,7 +1812,7 @@ func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.Swap
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.SwapQueueId(&mrpc.UpdateRequest[*corepb.SwapQueueIdRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1449,6 +1822,9 @@ func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.Swap
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1456,7 +1832,10 @@ func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.Swap
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskRequest) (*corepb.GetTaskResponse, error) {
+func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskRequest, opts ...mrpc.CallOption) (*corepb.GetTaskResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1464,7 +1843,7 @@ func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskR
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.GetTask(&mrpc.ReadRequest[*corepb.GetTaskRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1474,6 +1853,9 @@ func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskR
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1481,7 +1863,10 @@ func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskR
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.GetStatisticsRequest) (*corepb.GetStatisticsResponse, error) {
+func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.GetStatisticsRequest, opts ...mrpc.CallOption) (*corepb.GetStatisticsResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1489,7 +1874,7 @@ func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.Ge
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.GetStatistics(&mrpc.ReadRequest[*corepb.GetStatisticsRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1499,6 +1884,9 @@ func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.Ge
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1506,7 +1894,10 @@ func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.Ge
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTasksRequest) (*corepb.ListTasksResponse, error) {
+func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTasksRequest, opts ...mrpc.CallOption) (*corepb.ListTasksResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1514,7 +1905,7 @@ func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTa
 			defer adapter.mu.RUnlock()
 
 			resp, err := adapter.core.ListTasks(&mrpc.ReadRequest[*corepb.ListTasksRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1524,6 +1915,9 @@ func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTa
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1531,7 +1925,10 @@ func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTa
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueRequest) (*corepb.EnqueueResponse, error) {
+func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueRequest, opts ...mrpc.CallOption) (*corepb.EnqueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1539,7 +1936,7 @@ func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueR
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.Enqueue(&mrpc.UpdateRequest[*corepb.EnqueueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1549,6 +1946,9 @@ func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueR
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1556,7 +1956,10 @@ func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueR
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueRequest) (*corepb.DequeueResponse, error) {
+func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueRequest, opts ...mrpc.CallOption) (*corepb.DequeueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1564,7 +1967,7 @@ func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueR
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.Dequeue(&mrpc.UpdateRequest[*corepb.DequeueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1574,6 +1977,9 @@ func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueR
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1581,7 +1987,10 @@ func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueR
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.ReportStatusRequest) (*corepb.ReportStatusResponse, error) {
+func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.ReportStatusRequest, opts ...mrpc.CallOption) (*corepb.ReportStatusResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1589,7 +1998,7 @@ func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.Rep
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.ReportStatus(&mrpc.UpdateRequest[*corepb.ReportStatusRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1599,6 +2008,9 @@ func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.Rep
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1606,7 +2018,10 @@ func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.Rep
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.DeleteTasksRequest) (*corepb.DeleteTasksResponse, error) {
+func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.DeleteTasksRequest, opts ...mrpc.CallOption) (*corepb.DeleteTasksResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1614,7 +2029,7 @@ func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.Dele
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.DeleteTasks(&mrpc.UpdateRequest[*corepb.DeleteTasksRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1624,6 +2039,9 @@ func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.Dele
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1631,7 +2049,10 @@ func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.Dele
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.RestartTasksRequest) (*corepb.RestartTasksResponse, error) {
+func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.RestartTasksRequest, opts ...mrpc.CallOption) (*corepb.RestartTasksResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1639,7 +2060,7 @@ func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.Res
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.RestartTasks(&mrpc.UpdateRequest[*corepb.RestartTasksRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1649,6 +2070,9 @@ func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.Res
 			if err != nil {
 				return nil, err
 			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+			}
 			return resp.Payload, nil
 		}
 	}
@@ -1656,7 +2080,10 @@ func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.Res
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.PurgeQueueRequest) (*corepb.PurgeQueueResponse, error) {
+func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.PurgeQueueRequest, opts ...mrpc.CallOption) (*corepb.PurgeQueueResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	shardKey := req.ShardKey()
 	for _, adapter := range s.moabTasksCores {
 		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
@@ -1664,7 +2091,7 @@ func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.Purge
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.PurgeQueue(&mrpc.UpdateRequest[*corepb.PurgeQueueRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1673,6 +2100,9 @@ func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.Purge
 			err = nilifyIfEmpty(resp.ApplicationError)
 			if err != nil {
 				return nil, err
+			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 			}
 			return resp.Payload, nil
 		}
@@ -1681,14 +2111,17 @@ func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.Purge
 	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
 }
 
-func (s *MoabNonclusteredStub) RunTasksGarbageCollection(ctx context.Context, req *corepb.RunTasksGarbageCollectionRequest, shardId string) (*corepb.RunTasksGarbageCollectionResponse, error) {
+func (s *MoabNonclusteredStub) RunTasksGarbageCollection(ctx context.Context, req *corepb.RunTasksGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunTasksGarbageCollectionResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	for _, adapter := range s.moabTasksCores {
 		if adapter.id == shardId {
 			adapter.mu.Lock()
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.RunTasksGarbageCollection(&mrpc.UpdateUnshardedRequest[*corepb.RunTasksGarbageCollectionRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1697,6 +2130,9 @@ func (s *MoabNonclusteredStub) RunTasksGarbageCollection(ctx context.Context, re
 			err = nilifyIfEmpty(resp.ApplicationError)
 			if err != nil {
 				return nil, err
+			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 			}
 			return resp.Payload, nil
 		}
@@ -1705,14 +2141,17 @@ func (s *MoabNonclusteredStub) RunTasksGarbageCollection(ctx context.Context, re
 	return nil, fmt.Errorf("no shard found for shardId: %s", shardId)
 }
 
-func (s *MoabNonclusteredStub) RunPurgeQueueGarbageCollection(ctx context.Context, req *corepb.RunPurgeQueueGarbageCollectionRequest, shardId string) (*corepb.RunPurgeQueueGarbageCollectionResponse, error) {
+func (s *MoabNonclusteredStub) RunPurgeQueueGarbageCollection(ctx context.Context, req *corepb.RunPurgeQueueGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunPurgeQueueGarbageCollectionResponse, error) {
+	settings := mrpc.ApplyCallOptions(opts...)
+	now := time.Now().UnixNano()
+
 	for _, adapter := range s.moabTasksCores {
 		if adapter.id == shardId {
 			adapter.mu.Lock()
 			defer adapter.mu.Unlock()
 
 			resp, err := adapter.core.RunPurgeQueueGarbageCollection(&mrpc.UpdateUnshardedRequest[*corepb.RunPurgeQueueGarbageCollectionRequest]{
-				Now:     time.Now().UnixNano(),
+				Now:     now,
 				Payload: req,
 			})
 			if err != nil {
@@ -1721,6 +2160,9 @@ func (s *MoabNonclusteredStub) RunPurgeQueueGarbageCollection(ctx context.Contex
 			err = nilifyIfEmpty(resp.ApplicationError)
 			if err != nil {
 				return nil, err
+			}
+			if settings.ResponseMeta != nil {
+				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 			}
 			return resp.Payload, nil
 		}
