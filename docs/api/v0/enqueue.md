@@ -44,6 +44,9 @@ the response. Deduplicated (without `overwrite_on_duplicate`) tasks will be skip
 Deduplicated (with some `overwrite_on_duplicate` set) tasks will be modified and returned in the response.
 
 * Returns `NotFound` if the queue does not exist.
+* `now` is the server clock (Unix nanoseconds) at the moment this response was produced — use
+  it, not your local clock, to compute remaining time against each task's `scheduled_at`/
+  `expires_at`.
 
 ```json
 {
@@ -58,6 +61,7 @@ Deduplicated (with some `overwrite_on_duplicate` set) tasks will be modified and
       "dedupe_key": "unique_key_123",
       "attempts": 1
     }
-  ]
+  ],
+  "now": 1695826539671432000
 }
 ```

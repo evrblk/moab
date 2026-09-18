@@ -4,15 +4,15 @@ go 1.27.0
 
 require (
 	github.com/adhocore/gronx v1.20.3
-	github.com/evrblk/evrblk-go v0.0.0-20260917180416-232ce3c080fc
-	github.com/evrblk/monstera v0.0.0-20260917180311-31d9d965ee74
+	github.com/evrblk/evrblk-go v0.0.0-20260918142802-63460f69282e
+	github.com/evrblk/monstera v0.0.0-20260917194923-3e76cee8845b
 	github.com/evrblk/yellowstone-common v0.0.0-20260915204323-38c802c5a1de
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 	github.com/prometheus/client_golang v1.24.1
 	github.com/samber/lo v1.53.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 )
 
@@ -22,7 +22,7 @@ require (
 	github.com/dave/jennifer v1.7.1 // indirect
 	github.com/dgraph-io/badger/v4 v4.9.6 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.4.2 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/evrblk/fenestra v0.0.0-20260724141201-56c281e924fc // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -36,7 +36,6 @@ require (
 	github.com/hashicorp/raft v1.8.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.20.0 // indirect
-	github.com/kr/text v0.1.0 // indirect
 	github.com/labstack/echo/v4 v4.15.4 // indirect
 	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
@@ -58,7 +57,7 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260911204522-f61a6ca850bd // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260917231906-eeb232e0883d // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

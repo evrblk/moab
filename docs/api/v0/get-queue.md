@@ -15,6 +15,8 @@ Read-only and safe to retry.
 ## Response
 
 * Returns `NotFound` if the queue does not exist.
+* `now` is the server clock (Unix nanoseconds) at the moment `stats` was collected — a
+  snapshot, not a stored attribute of the queue.
 
 ```json
 {
@@ -52,6 +54,7 @@ Read-only and safe to retry.
     // The oldest task out of this 15230 has been ready to be picked up for 16.5 seconds (in nanoseconds),
     // but it is still in the queue.
     "age_of_oldest_enqueued_task": 16498185433
-  }
+  },
+  "now": 1695826839671432000
 }
 ```

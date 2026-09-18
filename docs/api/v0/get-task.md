@@ -16,6 +16,9 @@ Read-only and safe to retry.
 ## Response
 
 * Returns `NotFound` if the queue or the task does not exist.
+* `now` is the server clock (Unix nanoseconds) at the moment this response was produced — use
+  it, not your local clock, to compute remaining time against `task.scheduled_at`/
+  `task.expires_at`.
 
 ```json
 {
@@ -30,6 +33,7 @@ Read-only and safe to retry.
     "attempts": 1,
     "thread_id": "",
     "state": "TASK_STATE_ENQUEUED"
-  }
+  },
+  "now": 1695827039671432000
 }
 ```

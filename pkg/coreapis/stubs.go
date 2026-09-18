@@ -51,13 +51,13 @@ func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQu
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -68,10 +68,7 @@ func (s *MoabMonsteraStub) GetQueue(ctx context.Context, methodReq *corepb.GetQu
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -101,13 +98,13 @@ func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -118,10 +115,7 @@ func (s *MoabMonsteraStub) GetQueueByName(ctx context.Context, methodReq *corepb
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -151,13 +145,13 @@ func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.Lis
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -168,10 +162,7 @@ func (s *MoabMonsteraStub) ListQueues(ctx context.Context, methodReq *corepb.Lis
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -201,13 +192,13 @@ func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.Ge
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -218,10 +209,7 @@ func (s *MoabMonsteraStub) GetSchedule(ctx context.Context, methodReq *corepb.Ge
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -251,13 +239,13 @@ func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.ReadShard(ctx, "MoabQueues", shardId, false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.ReadShard(ctx, "MoabQueues", shardId, false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -268,10 +256,7 @@ func (s *MoabMonsteraStub) DequeSchedules(ctx context.Context, methodReq *corepb
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -301,13 +286,13 @@ func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabQueues", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -318,10 +303,7 @@ func (s *MoabMonsteraStub) ListSchedules(ctx context.Context, methodReq *corepb.
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -351,13 +333,13 @@ func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.Cr
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -370,7 +352,7 @@ func (s *MoabMonsteraStub) CreateQueue(ctx context.Context, methodReq *corepb.Cr
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -401,13 +383,13 @@ func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.Up
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -420,7 +402,7 @@ func (s *MoabMonsteraStub) UpdateQueue(ctx context.Context, methodReq *corepb.Up
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -451,13 +433,13 @@ func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.De
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -470,7 +452,7 @@ func (s *MoabMonsteraStub) DeleteQueue(ctx context.Context, methodReq *corepb.De
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -501,13 +483,13 @@ func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -520,7 +502,7 @@ func (s *MoabMonsteraStub) CreateSchedule(ctx context.Context, methodReq *corepb
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -551,13 +533,13 @@ func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -570,7 +552,7 @@ func (s *MoabMonsteraStub) UpdateSchedule(ctx context.Context, methodReq *corepb
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -601,13 +583,13 @@ func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -620,7 +602,7 @@ func (s *MoabMonsteraStub) DeleteSchedule(ctx context.Context, methodReq *corepb
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -651,13 +633,13 @@ func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq 
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.UpdateShard(ctx, "MoabQueues", shardId, rpcReqBytes)
+	clientResp, err := s.monsteraClient.UpdateShard(ctx, "MoabQueues", shardId, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -670,7 +652,7 @@ func (s *MoabMonsteraStub) ReportSchedulesStatus(ctx context.Context, methodReq 
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -701,13 +683,13 @@ func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, metho
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.UpdateShard(ctx, "MoabQueues", shardId, rpcReqBytes)
+	clientResp, err := s.monsteraClient.UpdateShard(ctx, "MoabQueues", shardId, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -720,7 +702,7 @@ func (s *MoabMonsteraStub) RunQueuesGarbageCollection(ctx context.Context, metho
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -751,13 +733,13 @@ func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.Sw
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabQueues", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -770,7 +752,7 @@ func (s *MoabMonsteraStub) SwapQueueId(ctx context.Context, methodReq *corepb.Sw
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -801,13 +783,13 @@ func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTas
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabTasks", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabTasks", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -818,10 +800,7 @@ func (s *MoabMonsteraStub) GetTask(ctx context.Context, methodReq *corepb.GetTas
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -851,13 +830,13 @@ func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabTasks", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabTasks", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -868,10 +847,7 @@ func (s *MoabMonsteraStub) GetStatistics(ctx context.Context, methodReq *corepb.
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -901,13 +877,13 @@ func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.List
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Read(ctx, "MoabTasks", methodReq.ShardKey(), false, rpcReqBytes)
+	clientResp, err := s.monsteraClient.Read(ctx, "MoabTasks", methodReq.ShardKey(), false, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -918,10 +894,7 @@ func (s *MoabMonsteraStub) ListTasks(ctx context.Context, methodReq *corepb.List
 	}
 
 	if settings.ResponseMeta != nil {
-		*settings.ResponseMeta = mrpc.ResponseMeta{
-			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
-		}
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
 	}
 
 	return methodResp, nilifyIfEmpty(rpcResp.Error)
@@ -951,13 +924,13 @@ func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.Enqueu
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -970,7 +943,7 @@ func (s *MoabMonsteraStub) Enqueue(ctx context.Context, methodReq *corepb.Enqueu
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1001,13 +974,13 @@ func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.Dequeu
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1020,7 +993,7 @@ func (s *MoabMonsteraStub) Dequeue(ctx context.Context, methodReq *corepb.Dequeu
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1051,13 +1024,13 @@ func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.R
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1070,7 +1043,7 @@ func (s *MoabMonsteraStub) ReportStatus(ctx context.Context, methodReq *corepb.R
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1101,13 +1074,13 @@ func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.De
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1120,7 +1093,7 @@ func (s *MoabMonsteraStub) DeleteTasks(ctx context.Context, methodReq *corepb.De
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1151,13 +1124,13 @@ func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.R
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1170,7 +1143,7 @@ func (s *MoabMonsteraStub) RestartTasks(ctx context.Context, methodReq *corepb.R
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1201,13 +1174,13 @@ func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.Pur
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
+	clientResp, err := s.monsteraClient.Update(ctx, "MoabTasks", methodReq.ShardKey(), rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1220,7 +1193,7 @@ func (s *MoabMonsteraStub) PurgeQueue(ctx context.Context, methodReq *corepb.Pur
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1251,13 +1224,13 @@ func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, method
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.UpdateShard(ctx, "MoabTasks", shardId, rpcReqBytes)
+	clientResp, err := s.monsteraClient.UpdateShard(ctx, "MoabTasks", shardId, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1270,7 +1243,7 @@ func (s *MoabMonsteraStub) RunTasksGarbageCollection(ctx context.Context, method
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 
@@ -1301,13 +1274,13 @@ func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, m
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	rpcRespBytes, err := s.monsteraClient.UpdateShard(ctx, "MoabTasks", shardId, rpcReqBytes)
+	clientResp, err := s.monsteraClient.UpdateShard(ctx, "MoabTasks", shardId, rpcReqBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	rpcResp := &mrpc.Response{}
-	err = rpcResp.UnmarshalVT(rpcRespBytes)
+	err = rpcResp.UnmarshalVT(clientResp.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -1320,7 +1293,7 @@ func (s *MoabMonsteraStub) RunPurgeQueueGarbageCollection(ctx context.Context, m
 	if settings.ResponseMeta != nil {
 		*settings.ResponseMeta = mrpc.ResponseMeta{
 			Now:          now,
-			RaftLogIndex: rpcResp.RaftLogIndex,
+			RaftLogIndex: clientResp.RaftLogIndex,
 		}
 	}
 

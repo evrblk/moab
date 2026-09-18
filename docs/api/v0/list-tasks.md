@@ -34,6 +34,9 @@ Read-only and safe to retry.
 ## Response
 
 * Returns `NotFound` if the queue does not exist.
+* `now` is the server clock (Unix nanoseconds) at the moment this response was produced — use
+  it, not your local clock, to compute remaining time against each task's `scheduled_at`/
+  `expires_at`.
 
 ```json
 {
@@ -52,6 +55,7 @@ Read-only and safe to retry.
     }
   ],
   "next_pagination_token": "",
-  "previous_pagination_token": ""
+  "previous_pagination_token": "",
+  "now": 1695826649671432000
 }
 ```

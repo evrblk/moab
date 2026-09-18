@@ -19,6 +19,9 @@ any change made by `UpdateQueue`, such as changing dequeuing settings, will be p
 ## Response
 
 * Returns `NotFound` if the queue does not exist.
+* `now` is the server clock (Unix nanoseconds) at the moment this response was produced — use
+  it, not your local clock, to compute remaining time against each task's `expires_at`. This is
+  the lease handoff to the worker, so getting this right matters.
 
 ```json
 {
@@ -33,6 +36,7 @@ any change made by `UpdateQueue`, such as changing dequeuing settings, will be p
       "dedupe_key": "",
       "attempts": 1
     }
-  ]
+  ],
+  "now": 1695826639671432000
 }
 ```

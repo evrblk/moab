@@ -78,9 +78,10 @@ func (s *MoabApiServerHandler) GetQueue(ctx context.Context, req *moabpb.GetQueu
 		return nil, mrpc.ErrorToGRPC(err)
 	}
 
+	var meta mrpc.ResponseMeta
 	resp2, err := s.moabClient.GetStatistics(ctx, &corepb.GetStatisticsRequest{
 		QueueId: resp1.Queue.Id,
-	})
+	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		return nil, mrpc.ErrorToGRPC(err)
 	}
@@ -88,6 +89,7 @@ func (s *MoabApiServerHandler) GetQueue(ctx context.Context, req *moabpb.GetQueu
 	return &moabpb.GetQueueResponse{
 		Queue: queueToFront(resp1.Queue),
 		Stats: queueStatsToFront(resp2),
+		Now:   meta.Now,
 	}, nil
 }
 
@@ -223,10 +225,11 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 		}
 	}
 
+	var meta mrpc.ResponseMeta
 	enqueueResponse, err := s.moabClient.Enqueue(ctx, &corepb.EnqueueRequest{
 		QueueId: queue.Id,
 		Entries: entries,
-	})
+	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
 		if refreshErr != nil {
@@ -239,7 +242,7 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 		enqueueResponse, err = s.moabClient.Enqueue(ctx, &corepb.EnqueueRequest{
 			QueueId: freshQueue.Id,
 			Entries: entries,
-		})
+		}, mrpc.WithResponseMeta(&meta))
 		if err != nil {
 			return nil, mrpc.ErrorToGRPC(err)
 		}
@@ -249,6 +252,7 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 
 	return &moabpb.EnqueueResponse{
 		Tasks: tasksToFront(tasks),
+		Now:   meta.Now,
 	}, nil
 }
 
@@ -302,12 +306,13 @@ func (s *MoabApiServerHandler) Dequeue(ctx context.Context, req *moabpb.DequeueR
 		// If dequeue limit is not set (is 0) then 1 is default
 		dequeueLimit = 1
 	}
+	var meta mrpc.ResponseMeta
 	dequeueResponse, err := s.moabClient.Dequeue(ctx, &corepb.DequeueRequest{
 		QueueId:               queue.Id,
 		DequeuingSettings:     queue.DequeuingSettings,
 		DequeueLimit:          dequeueLimit,
 		DeadLetterQueueConfig: queue.DeadLetterQueueConfig,
-	})
+	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
 		if refreshErr != nil {
@@ -322,7 +327,7 @@ func (s *MoabApiServerHandler) Dequeue(ctx context.Context, req *moabpb.DequeueR
 			DequeuingSettings:     freshQueue.DequeuingSettings,
 			DequeueLimit:          dequeueLimit,
 			DeadLetterQueueConfig: freshQueue.DeadLetterQueueConfig,
-		})
+		}, mrpc.WithResponseMeta(&meta))
 		if err != nil {
 			return nil, mrpc.ErrorToGRPC(err)
 		}
@@ -330,6 +335,7 @@ func (s *MoabApiServerHandler) Dequeue(ctx context.Context, req *moabpb.DequeueR
 
 	return &moabpb.DequeueResponse{
 		Tasks: tasksToFront(dequeueResponse.Tasks),
+		Now:   meta.Now,
 	}, nil
 }
 
@@ -440,16 +446,18 @@ func (s *MoabApiServerHandler) RestartTasks(ctx context.Context, req *moabpb.Res
 		}
 	}
 
+	var meta mrpc.ResponseMeta
 	restartResponse, err := s.moabClient.RestartTasks(ctx, &corepb.RestartTasksRequest{
 		QueueId: queue.Id,
 		Entries: entries,
-	})
+	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		return nil, mrpc.ErrorToGRPC(err)
 	}
 
 	return &moabpb.RestartTasksResponse{
 		Entries: restartTasksResponseEntriesToFront(restartResponse.Entries),
+		Now:     meta.Now,
 	}, nil
 }
 
@@ -632,19 +640,21 @@ func (s *MoabApiServerHandler) GetTask(ctx context.Context, req *moabpb.GetTaskR
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
+	var meta mrpc.ResponseMeta
 	resp2, err := s.moabClient.GetTask(ctx, &corepb.GetTaskRequest{
 		TaskId: &corepb.TaskId{
 			AccountId: accountId,
 			QueueId:   resp1.Queue.Id.QueueId,
 			TaskId:    taskId,
 		},
-	})
+	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		return nil, mrpc.ErrorToGRPC(err)
 	}
 
 	return &moabpb.GetTaskResponse{
 		Task: taskToFront(resp2.Task),
+		Now:  meta.Now,
 	}, nil
 }
 
@@ -660,12 +670,13 @@ func (s *MoabApiServerHandler) ListTasks(ctx context.Context, req *moabpb.ListTa
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
+	var meta mrpc.ResponseMeta
 	resp1, err := s.moabClient.ListTasks(ctx, &corepb.ListTasksRequest{
 		QueueId:         queue.Id,
 		PaginationToken: paginationToken,
 		Limit:           req.Limit,
 		State:           taskStateFilterToCore(req.State),
-	})
+	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
 		if refreshErr != nil {
@@ -680,7 +691,7 @@ func (s *MoabApiServerHandler) ListTasks(ctx context.Context, req *moabpb.ListTa
 			PaginationToken: paginationToken,
 			Limit:           req.Limit,
 			State:           taskStateFilterToCore(req.State),
-		})
+		}, mrpc.WithResponseMeta(&meta))
 		if err != nil {
 			return nil, mrpc.ErrorToGRPC(err)
 		}
@@ -700,6 +711,7 @@ func (s *MoabApiServerHandler) ListTasks(ctx context.Context, req *moabpb.ListTa
 		Tasks:                   tasksToFront(resp1.Tasks),
 		NextPaginationToken:     nextPaginationToken,
 		PreviousPaginationToken: previousPaginationToken,
+		Now:                     meta.Now,
 	}, nil
 }
 
