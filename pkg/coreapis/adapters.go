@@ -10,6 +10,7 @@ import (
 	mrpc "github.com/evrblk/monstera/rpc"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"io"
+	"log/slog"
 	"time"
 )
 
@@ -72,7 +73,7 @@ func (a *MoabQueuesCoreAdapter) Close() {
 	a.moabQueuesCore.Close()
 }
 
-func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResponse, error) {
+func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte, log *slog.Logger) (*monstera.UpdateResponse, error) {
 	t1 := time.Now()
 
 	resp := &monstera.UpdateResponse{}
@@ -100,7 +101,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.CreateQueue(&CreateQueueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +128,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.UpdateQueue(&UpdateQueueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +155,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.DeleteQueue(&DeleteQueueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +182,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.CreateSchedule(&CreateScheduleRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +209,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.UpdateSchedule(&UpdateScheduleRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -235,7 +236,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.DeleteSchedule(&DeleteScheduleRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +260,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.ReportSchedulesStatus(&ReportSchedulesStatusRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +284,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.RunQueuesGarbageCollection(&RunQueuesGarbageCollectionRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +311,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 		methodResp, err := a.moabQueuesCore.SwapQueueId(&SwapQueueIdRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -335,7 +336,7 @@ func (a *MoabQueuesCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResp
 	return resp, nil
 }
 
-func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse, error) {
+func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte, log *slog.Logger) (*monstera.ReadResponse, error) {
 	t1 := time.Now()
 
 	resp := &monstera.ReadResponse{}
@@ -363,7 +364,7 @@ func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse
 		methodResp, err := a.moabQueuesCore.GetQueue(&GetQueueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -390,7 +391,7 @@ func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse
 		methodResp, err := a.moabQueuesCore.GetQueueByName(&GetQueueByNameRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -417,7 +418,7 @@ func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse
 		methodResp, err := a.moabQueuesCore.ListQueues(&ListQueuesRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -444,7 +445,7 @@ func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse
 		methodResp, err := a.moabQueuesCore.GetSchedule(&GetScheduleRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -468,7 +469,7 @@ func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse
 		methodResp, err := a.moabQueuesCore.DequeSchedules(&DequeSchedulesRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -495,7 +496,7 @@ func (a *MoabQueuesCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse
 		methodResp, err := a.moabQueuesCore.ListSchedules(&ListSchedulesRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -556,7 +557,7 @@ func (a *MoabTasksCoreAdapter) Close() {
 	a.moabTasksCore.Close()
 }
 
-func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateResponse, error) {
+func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte, log *slog.Logger) (*monstera.UpdateResponse, error) {
 	t1 := time.Now()
 
 	resp := &monstera.UpdateResponse{}
@@ -584,7 +585,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.Enqueue(&EnqueueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -611,7 +612,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.Dequeue(&DequeueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -638,7 +639,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.ReportStatus(&ReportStatusRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -665,7 +666,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.DeleteTasks(&DeleteTasksRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -692,7 +693,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.RestartTasks(&RestartTasksRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -719,7 +720,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.PurgeQueue(&PurgeQueueRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -743,7 +744,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.RunTasksGarbageCollection(&RunTasksGarbageCollectionRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -767,7 +768,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 		methodResp, err := a.moabTasksCore.RunPurgeQueueGarbageCollection(&RunPurgeQueueGarbageCollectionRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -792,7 +793,7 @@ func (a *MoabTasksCoreAdapter) Update(rpcReqBytes []byte) (*monstera.UpdateRespo
 	return resp, nil
 }
 
-func (a *MoabTasksCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse, error) {
+func (a *MoabTasksCoreAdapter) Read(rpcReqBytes []byte, log *slog.Logger) (*monstera.ReadResponse, error) {
 	t1 := time.Now()
 
 	resp := &monstera.ReadResponse{}
@@ -820,7 +821,7 @@ func (a *MoabTasksCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse,
 		methodResp, err := a.moabTasksCore.GetTask(&GetTaskRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -847,7 +848,7 @@ func (a *MoabTasksCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse,
 		methodResp, err := a.moabTasksCore.GetStatistics(&GetStatisticsRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}
@@ -874,7 +875,7 @@ func (a *MoabTasksCoreAdapter) Read(rpcReqBytes []byte) (*monstera.ReadResponse,
 		methodResp, err := a.moabTasksCore.ListTasks(&ListTasksRequest{
 			Now:     rpcReq.Now,
 			Payload: &methodReq,
-		})
+		}, log)
 		if err != nil {
 			return nil, err
 		}

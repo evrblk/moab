@@ -8,6 +8,7 @@ import (
 	monstera "github.com/evrblk/monstera"
 	mrpc "github.com/evrblk/monstera/rpc"
 	"io"
+	"log/slog"
 )
 
 type GetQueueRequest = mrpc.ReadRequest[*corepb.GetQueueRequest]
@@ -98,36 +99,36 @@ type MoabQueuesCoreApi interface {
 	Snapshot() monstera.ApplicationCoreSnapshot
 	Restore(readers ...io.ReadCloser) error
 	Close()
-	GetQueue(req *GetQueueRequest) (*GetQueueResponse, error)
-	GetQueueByName(req *GetQueueByNameRequest) (*GetQueueByNameResponse, error)
-	ListQueues(req *ListQueuesRequest) (*ListQueuesResponse, error)
-	GetSchedule(req *GetScheduleRequest) (*GetScheduleResponse, error)
-	DequeSchedules(req *DequeSchedulesRequest) (*DequeSchedulesResponse, error)
-	ListSchedules(req *ListSchedulesRequest) (*ListSchedulesResponse, error)
-	CreateQueue(req *CreateQueueRequest) (*CreateQueueResponse, error)
-	UpdateQueue(req *UpdateQueueRequest) (*UpdateQueueResponse, error)
-	DeleteQueue(req *DeleteQueueRequest) (*DeleteQueueResponse, error)
-	CreateSchedule(req *CreateScheduleRequest) (*CreateScheduleResponse, error)
-	UpdateSchedule(req *UpdateScheduleRequest) (*UpdateScheduleResponse, error)
-	DeleteSchedule(req *DeleteScheduleRequest) (*DeleteScheduleResponse, error)
-	ReportSchedulesStatus(req *ReportSchedulesStatusRequest) (*ReportSchedulesStatusResponse, error)
-	RunQueuesGarbageCollection(req *RunQueuesGarbageCollectionRequest) (*RunQueuesGarbageCollectionResponse, error)
-	SwapQueueId(req *SwapQueueIdRequest) (*SwapQueueIdResponse, error)
+	GetQueue(req *GetQueueRequest, log *slog.Logger) (*GetQueueResponse, error)
+	GetQueueByName(req *GetQueueByNameRequest, log *slog.Logger) (*GetQueueByNameResponse, error)
+	ListQueues(req *ListQueuesRequest, log *slog.Logger) (*ListQueuesResponse, error)
+	GetSchedule(req *GetScheduleRequest, log *slog.Logger) (*GetScheduleResponse, error)
+	DequeSchedules(req *DequeSchedulesRequest, log *slog.Logger) (*DequeSchedulesResponse, error)
+	ListSchedules(req *ListSchedulesRequest, log *slog.Logger) (*ListSchedulesResponse, error)
+	CreateQueue(req *CreateQueueRequest, log *slog.Logger) (*CreateQueueResponse, error)
+	UpdateQueue(req *UpdateQueueRequest, log *slog.Logger) (*UpdateQueueResponse, error)
+	DeleteQueue(req *DeleteQueueRequest, log *slog.Logger) (*DeleteQueueResponse, error)
+	CreateSchedule(req *CreateScheduleRequest, log *slog.Logger) (*CreateScheduleResponse, error)
+	UpdateSchedule(req *UpdateScheduleRequest, log *slog.Logger) (*UpdateScheduleResponse, error)
+	DeleteSchedule(req *DeleteScheduleRequest, log *slog.Logger) (*DeleteScheduleResponse, error)
+	ReportSchedulesStatus(req *ReportSchedulesStatusRequest, log *slog.Logger) (*ReportSchedulesStatusResponse, error)
+	RunQueuesGarbageCollection(req *RunQueuesGarbageCollectionRequest, log *slog.Logger) (*RunQueuesGarbageCollectionResponse, error)
+	SwapQueueId(req *SwapQueueIdRequest, log *slog.Logger) (*SwapQueueIdResponse, error)
 }
 
 type MoabTasksCoreApi interface {
 	Snapshot() monstera.ApplicationCoreSnapshot
 	Restore(readers ...io.ReadCloser) error
 	Close()
-	GetTask(req *GetTaskRequest) (*GetTaskResponse, error)
-	GetStatistics(req *GetStatisticsRequest) (*GetStatisticsResponse, error)
-	ListTasks(req *ListTasksRequest) (*ListTasksResponse, error)
-	Enqueue(req *EnqueueRequest) (*EnqueueResponse, error)
-	Dequeue(req *DequeueRequest) (*DequeueResponse, error)
-	ReportStatus(req *ReportStatusRequest) (*ReportStatusResponse, error)
-	DeleteTasks(req *DeleteTasksRequest) (*DeleteTasksResponse, error)
-	RestartTasks(req *RestartTasksRequest) (*RestartTasksResponse, error)
-	PurgeQueue(req *PurgeQueueRequest) (*PurgeQueueResponse, error)
-	RunTasksGarbageCollection(req *RunTasksGarbageCollectionRequest) (*RunTasksGarbageCollectionResponse, error)
-	RunPurgeQueueGarbageCollection(req *RunPurgeQueueGarbageCollectionRequest) (*RunPurgeQueueGarbageCollectionResponse, error)
+	GetTask(req *GetTaskRequest, log *slog.Logger) (*GetTaskResponse, error)
+	GetStatistics(req *GetStatisticsRequest, log *slog.Logger) (*GetStatisticsResponse, error)
+	ListTasks(req *ListTasksRequest, log *slog.Logger) (*ListTasksResponse, error)
+	Enqueue(req *EnqueueRequest, log *slog.Logger) (*EnqueueResponse, error)
+	Dequeue(req *DequeueRequest, log *slog.Logger) (*DequeueResponse, error)
+	ReportStatus(req *ReportStatusRequest, log *slog.Logger) (*ReportStatusResponse, error)
+	DeleteTasks(req *DeleteTasksRequest, log *slog.Logger) (*DeleteTasksResponse, error)
+	RestartTasks(req *RestartTasksRequest, log *slog.Logger) (*RestartTasksResponse, error)
+	PurgeQueue(req *PurgeQueueRequest, log *slog.Logger) (*PurgeQueueResponse, error)
+	RunTasksGarbageCollection(req *RunTasksGarbageCollectionRequest, log *slog.Logger) (*RunTasksGarbageCollectionResponse, error)
+	RunPurgeQueueGarbageCollection(req *RunPurgeQueueGarbageCollectionRequest, log *slog.Logger) (*RunPurgeQueueGarbageCollectionResponse, error)
 }

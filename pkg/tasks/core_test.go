@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
 	"testing"
 	"time"
@@ -682,7 +683,7 @@ func TestPurgedQueueIdRejectsEnqueueDequeueAndListTasks(t *testing.T) {
 			Entries: []*corepb.EnqueueRequestEntry{entry("b")},
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, enqueueResp.ApplicationError)
 	require.Equal(t, mrpc.NotFound, enqueueResp.ApplicationError.Code)
@@ -693,7 +694,7 @@ func TestPurgedQueueIdRejectsEnqueueDequeueAndListTasks(t *testing.T) {
 			DequeueLimit: 10,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, dequeueResp.ApplicationError)
 	require.Equal(t, mrpc.NotFound, dequeueResp.ApplicationError.Code)
@@ -703,7 +704,7 @@ func TestPurgedQueueIdRejectsEnqueueDequeueAndListTasks(t *testing.T) {
 			QueueId: &corepb.QueueId{AccountId: accountId, QueueId: queueId},
 			Limit:   10,
 		},
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, listResp.ApplicationError)
 	require.Equal(t, mrpc.NotFound, listResp.ApplicationError.Code)
@@ -1269,7 +1270,7 @@ func listTasks(t *testing.T, core *Core, accountId, queueId uint64, state corepb
 			Limit:           limit,
 			State:           state,
 		},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1476,7 +1477,7 @@ func enqueue(t *testing.T, core *Core, accountId, queueId uint64, now time.Time,
 			Entries: entries,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1492,7 +1493,7 @@ func getTask(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time) *co
 	resp, err := core.GetTask(&coreapis.GetTaskRequest{
 		Payload: &corepb.GetTaskRequest{TaskId: taskId},
 		Now:     now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1509,7 +1510,7 @@ func getTaskWithError(t *testing.T, core *Core, taskId *corepb.TaskId, now time.
 	resp, err := core.GetTask(&coreapis.GetTaskRequest{
 		Payload: &corepb.GetTaskRequest{TaskId: taskId},
 		Now:     now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1528,7 +1529,7 @@ func dequeue(t *testing.T, core *Core, accountId, queueId uint64, now time.Time,
 			DequeueLimit:      limit,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1560,7 +1561,7 @@ func reportStatusWithDLQConfig(t *testing.T, core *Core, taskId *corepb.TaskId, 
 			DeadLetterQueueConfig: dlqConfig,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1575,7 +1576,7 @@ func deleteTasks(t *testing.T, core *Core, accountId, queueId uint64, taskIds ..
 			QueueId: &corepb.QueueId{AccountId: accountId, QueueId: queueId},
 			TaskIds: taskIds,
 		},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1591,7 +1592,7 @@ func restartTasks(t *testing.T, core *Core, accountId, queueId uint64, now time.
 			Entries: entries,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1606,7 +1607,7 @@ func purgeQueue(t *testing.T, core *Core, accountId, queueId uint64) {
 
 	resp, err := core.PurgeQueue(&coreapis.PurgeQueueRequest{
 		Payload: &corepb.PurgeQueueRequest{QueueId: &corepb.QueueId{AccountId: accountId, QueueId: queueId}},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1619,7 +1620,7 @@ func runGarbageCollection(t *testing.T, core *Core, now time.Time) {
 	resp, err := core.RunTasksGarbageCollection(&coreapis.RunTasksGarbageCollectionRequest{
 		Payload: &corepb.RunTasksGarbageCollectionRequest{},
 		Now:     now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1631,7 +1632,7 @@ func runPurgeQueueGarbageCollection(t *testing.T, core *Core, req *corepb.RunPur
 
 	resp, err := core.RunPurgeQueueGarbageCollection(&coreapis.RunPurgeQueueGarbageCollectionRequest{
 		Payload: req,
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1644,7 +1645,7 @@ func getStatistics(t *testing.T, core *Core, accountId, queueId uint64, now time
 	resp, err := core.GetStatistics(&coreapis.GetStatisticsRequest{
 		Payload: &corepb.GetStatisticsRequest{QueueId: &corepb.QueueId{AccountId: accountId, QueueId: queueId}},
 		Now:     now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)

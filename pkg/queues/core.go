@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/adhocore/gronx"
@@ -102,7 +103,7 @@ func (c *Core) Close() {
 // that the queue name is not already taken, the account has not reached its
 // max-number-of-queues limit, and the (randomly generated) queue ID does not
 // collide with an existing one.
-func (c *Core) CreateQueue(req *coreapis.CreateQueueRequest) (*coreapis.CreateQueueResponse, error) {
+func (c *Core) CreateQueue(req *coreapis.CreateQueueRequest, log *slog.Logger) (*coreapis.CreateQueueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -202,7 +203,7 @@ func (c *Core) CreateQueue(req *coreapis.CreateQueueRequest) (*coreapis.CreateQu
 
 // ListQueues returns a page of queues for the requesting account, ordered by
 // queue ID, continuing from req.Payload.PaginationToken if provided.
-func (c *Core) ListQueues(req *coreapis.ListQueuesRequest) (*coreapis.ListQueuesResponse, error) {
+func (c *Core) ListQueues(req *coreapis.ListQueuesRequest, log *slog.Logger) (*coreapis.ListQueuesResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -222,7 +223,7 @@ func (c *Core) ListQueues(req *coreapis.ListQueuesRequest) (*coreapis.ListQueues
 
 // GetQueue returns a queue by ID. It returns a NotFound application error if
 // no queue with that ID exists.
-func (c *Core) GetQueue(req *coreapis.GetQueueRequest) (*coreapis.GetQueueResponse, error) {
+func (c *Core) GetQueue(req *coreapis.GetQueueRequest, log *slog.Logger) (*coreapis.GetQueueResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -252,7 +253,7 @@ func (c *Core) GetQueue(req *coreapis.GetQueueRequest) (*coreapis.GetQueueRespon
 // GetQueueByName returns a queue by account ID and queue name. It returns a
 // NotFound application error if no queue with that name exists for the
 // account.
-func (c *Core) GetQueueByName(req *coreapis.GetQueueByNameRequest) (*coreapis.GetQueueByNameResponse, error) {
+func (c *Core) GetQueueByName(req *coreapis.GetQueueByNameRequest, log *slog.Logger) (*coreapis.GetQueueByNameResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -280,7 +281,7 @@ func (c *Core) GetQueueByName(req *coreapis.GetQueueByNameRequest) (*coreapis.Ge
 // and name; the name itself cannot be changed. Fields omitted from the
 // request are cleared, matching CreateQueue's field-by-field replacement
 // semantics rather than a partial patch.
-func (c *Core) UpdateQueue(req *coreapis.UpdateQueueRequest) (*coreapis.UpdateQueueResponse, error) {
+func (c *Core) UpdateQueue(req *coreapis.UpdateQueueRequest, log *slog.Logger) (*coreapis.UpdateQueueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -340,7 +341,7 @@ func (c *Core) UpdateQueue(req *coreapis.UpdateQueueRequest) (*coreapis.UpdateQu
 // carries the deleted queue's id so the caller (the server handler) can tell
 // TasksCore to asynchronously drain its tasks too, via the exact same
 // PurgeQueue marker SwapQueueId's rotation uses.
-func (c *Core) DeleteQueue(req *coreapis.DeleteQueueRequest) (*coreapis.DeleteQueueResponse, error) {
+func (c *Core) DeleteQueue(req *coreapis.DeleteQueueRequest, log *slog.Logger) (*coreapis.DeleteQueueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -413,7 +414,7 @@ func (c *Core) DeleteQueue(req *coreapis.DeleteQueueRequest) (*coreapis.DeleteQu
 // unreachable via ListSchedules, but actively break DequeSchedules the next
 // time one of them comes due (a NotFound there is treated as an index
 // corruption, not a skip) once TasksCore's GC starts draining the old id.
-func (c *Core) SwapQueueId(req *coreapis.SwapQueueIdRequest) (*coreapis.SwapQueueIdResponse, error) {
+func (c *Core) SwapQueueId(req *coreapis.SwapQueueIdRequest, log *slog.Logger) (*coreapis.SwapQueueIdResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -518,7 +519,7 @@ func (c *Core) SwapQueueId(req *coreapis.SwapQueueIdRequest) (*coreapis.SwapQueu
 // limit, and checking that the schedule name is not already taken within
 // the queue.NextScheduledAt is computed from the cron
 // expression and timezone relative to req.Now.
-func (c *Core) CreateSchedule(req *coreapis.CreateScheduleRequest) (*coreapis.CreateScheduleResponse, error) {
+func (c *Core) CreateSchedule(req *coreapis.CreateScheduleRequest, log *slog.Logger) (*coreapis.CreateScheduleResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -646,7 +647,7 @@ func (c *Core) CreateSchedule(req *coreapis.CreateScheduleRequest) (*coreapis.Cr
 
 // GetSchedule returns a schedule by queue name and schedule name. It returns
 // a NotFound application error if the queue or the schedule does not exist.
-func (c *Core) GetSchedule(req *coreapis.GetScheduleRequest) (*coreapis.GetScheduleResponse, error) {
+func (c *Core) GetSchedule(req *coreapis.GetScheduleRequest, log *slog.Logger) (*coreapis.GetScheduleResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -682,7 +683,7 @@ func (c *Core) GetSchedule(req *coreapis.GetScheduleRequest) (*coreapis.GetSched
 // ListSchedules returns a page of schedules belonging to the given queue,
 // ordered by schedule ID, continuing from req.Payload.PaginationToken if
 // provided.
-func (c *Core) ListSchedules(req *coreapis.ListSchedulesRequest) (*coreapis.ListSchedulesResponse, error) {
+func (c *Core) ListSchedules(req *coreapis.ListSchedulesRequest, log *slog.Logger) (*coreapis.ListSchedulesResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -704,7 +705,7 @@ func (c *Core) ListSchedules(req *coreapis.ListSchedulesRequest) (*coreapis.List
 // NextScheduledAt relative to req.Now, and bumps its version. The schedule
 // is looked up by queue name and schedule name; the name itself cannot be
 // changed.
-func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest) (*coreapis.UpdateScheduleResponse, error) {
+func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest, log *slog.Logger) (*coreapis.UpdateScheduleResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -791,7 +792,7 @@ func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest) (*coreapis.Up
 }
 
 // DeleteSchedule deletes a schedule found by queue name and schedule name.
-func (c *Core) DeleteSchedule(req *coreapis.DeleteScheduleRequest) (*coreapis.DeleteScheduleResponse, error) {
+func (c *Core) DeleteSchedule(req *coreapis.DeleteScheduleRequest, log *slog.Logger) (*coreapis.DeleteScheduleResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -843,7 +844,7 @@ func (c *Core) DeleteSchedule(req *coreapis.DeleteScheduleRequest) (*coreapis.De
 // req.Payload.LookaheadTime (up to maxDequeueSchedules, ordered by
 // NextScheduledAt), each paired with its owning queue, so a caller can
 // enqueue tasks for schedules that have come due.
-func (c *Core) DequeSchedules(req *coreapis.DequeSchedulesRequest) (*coreapis.DequeSchedulesResponse, error) {
+func (c *Core) DequeSchedules(req *coreapis.DequeSchedulesRequest, log *slog.Logger) (*coreapis.DequeSchedulesResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -883,7 +884,7 @@ func (c *Core) DequeSchedules(req *coreapis.DequeSchedulesRequest) (*coreapis.De
 // actually enqueued something this tick (req.Payload.LastEnqueuedFor != 0),
 // advances LastEnqueuedFor to it. Every other field on the schedule is left
 // untouched.
-func (c *Core) ReportSchedulesStatus(req *coreapis.ReportSchedulesStatusRequest) (*coreapis.ReportSchedulesStatusResponse, error) {
+func (c *Core) ReportSchedulesStatus(req *coreapis.ReportSchedulesStatusRequest, log *slog.Logger) (*coreapis.ReportSchedulesStatusResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -942,7 +943,7 @@ func (c *Core) ReportSchedulesStatus(req *coreapis.ReportSchedulesStatusRequest)
 // schedules, dropping the GC record once none are left. The amount of work
 // per call is bounded by req.Payload.MaxVisitedSchedules; records that don't
 // fully drain within budget are left for the next GC tick.
-func (c *Core) RunQueuesGarbageCollection(req *coreapis.RunQueuesGarbageCollectionRequest) (*coreapis.RunQueuesGarbageCollectionResponse, error) {
+func (c *Core) RunQueuesGarbageCollection(req *coreapis.RunQueuesGarbageCollectionRequest, log *slog.Logger) (*coreapis.RunQueuesGarbageCollectionResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 

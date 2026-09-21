@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/adhocore/gronx v1.20.3
 	github.com/evrblk/evrblk-go v0.0.0-20260918142802-63460f69282e
-	github.com/evrblk/monstera v0.0.0-20260917194923-3e76cee8845b
+	github.com/evrblk/monstera v0.0.0-20260921134121-f99fd6a5d648
 	github.com/evrblk/yellowstone-common v0.0.0-20260915204323-38c802c5a1de
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 	github.com/prometheus/client_golang v1.24.1
@@ -57,7 +57,7 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260917231906-eeb232e0883d // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260918162117-cecb64721679 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

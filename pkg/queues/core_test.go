@@ -3,6 +3,7 @@ package queues
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"math/rand/v2"
 	"testing"
 	"time"
@@ -147,7 +148,7 @@ func TestCore_MaxNumberOfSchedulesPerQueue(t *testing.T) {
 			MaxNumberOfSchedulesPerQueue: 1,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.Nil(t, resp1.ApplicationError)
 
@@ -163,7 +164,7 @@ func TestCore_MaxNumberOfSchedulesPerQueue(t *testing.T) {
 			MaxNumberOfSchedulesPerQueue: 1,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp2.ApplicationError)
 	require.Equal(t, mrpc.ResourceExhausted, resp2.ApplicationError.Code)
@@ -207,7 +208,7 @@ func TestCore_CreateScheduleIDCollision(t *testing.T) {
 			MaxNumberOfSchedulesPerQueue: 10,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.ApplicationError)
@@ -215,9 +216,7 @@ func TestCore_CreateScheduleIDCollision(t *testing.T) {
 }
 
 // Should reject creating a schedule with a syntactically invalid cron
-// expression. The check happens in the validating middleware wrapping
-// Core, not Core itself, but newQueuesCore wraps every test core in it,
-// so it is exercised the same way it is in production.
+// expression.
 func TestCore_CreateScheduleInvalidCron(t *testing.T) {
 	core := newQueuesCore(t)
 
@@ -237,7 +236,7 @@ func TestCore_CreateScheduleInvalidCron(t *testing.T) {
 			MaxNumberOfSchedulesPerQueue: 10,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.ApplicationError)
@@ -268,7 +267,7 @@ func TestCore_CreateScheduleInvalidTimezone(t *testing.T) {
 			MaxNumberOfSchedulesPerQueue: 10,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.ApplicationError)
@@ -335,7 +334,7 @@ func TestCore_UpdateQueueOptimisticLocking(t *testing.T) {
 			ExpectedVersion:           999,
 		},
 		Now: now.Add(time.Second).UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Nil(t, resp.Payload)
@@ -363,7 +362,7 @@ func TestCore_UpdateQueueOptimisticLocking(t *testing.T) {
 			ExpectedVersion:           1,
 		},
 		Now: now.Add(3 * time.Second).UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Nil(t, resp.Payload)
@@ -390,7 +389,7 @@ func TestCore_ListQueue(t *testing.T) {
 
 	resp, err := core.ListQueues(&coreapis.ListQueuesRequest{
 		Payload: &corepb.ListQueuesRequest{AccountId: accountId1},
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.Nil(t, resp.ApplicationError)
 	require.Len(t, resp.Payload.Queues, 2)
@@ -712,7 +711,7 @@ func TestCore_UpdateScheduleOptimisticLocking(t *testing.T) {
 			ExpectedVersion: 999,
 		},
 		Now: now.Add(time.Second).UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Nil(t, resp.Payload)
@@ -741,7 +740,7 @@ func TestCore_UpdateScheduleOptimisticLocking(t *testing.T) {
 			ExpectedVersion: 1,
 		},
 		Now: now.Add(3 * time.Second).UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Nil(t, resp.Payload)
@@ -776,7 +775,7 @@ func TestCore_UpdateScheduleInvalidCron(t *testing.T) {
 			ExpectedVersion: created.Version,
 		},
 		Now: now.Add(time.Second).UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.ApplicationError)
@@ -809,7 +808,7 @@ func TestCore_UpdateScheduleInvalidTimezone(t *testing.T) {
 			ExpectedVersion: created.Version,
 		},
 		Now: now.Add(time.Second).UnixNano(),
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.ApplicationError)
@@ -841,7 +840,7 @@ func TestCore_ReportSchedulesStatus(t *testing.T) {
 			LastEnqueuedFor: firstEnqueuedFor,
 		},
 		Now: firstCheckedAt,
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.Nil(t, resp.ApplicationError)
 
@@ -870,7 +869,7 @@ func TestCore_ReportSchedulesStatus(t *testing.T) {
 			LastEnqueuedFor: 0,
 		},
 		Now: secondCheckedAt,
-	})
+	}, slog.Default())
 	require.NoError(t, err)
 	require.Nil(t, resp.ApplicationError)
 
@@ -953,7 +952,7 @@ func createQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.
 			MaxNumberOfQueues: maxNumberOfQueues,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -976,7 +975,7 @@ func createQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId
 			MaxNumberOfQueues:         maxNumberOfQueues,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -991,7 +990,7 @@ func getQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corepb.Que
 
 	resp, err := core.GetQueue(&coreapis.GetQueueRequest{
 		Payload: &corepb.GetQueueRequest{QueueId: queueId},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1007,7 +1006,7 @@ func getQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *c
 
 	resp, err := core.GetQueue(&coreapis.GetQueueRequest{
 		Payload: &corepb.GetQueueRequest{QueueId: queueId},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1046,7 +1045,7 @@ func updateQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64
 			ExpectedVersion:  1,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1069,7 +1068,7 @@ func updateQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, account
 			ExpiresInSeconds:          14 * 86400,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1084,7 +1083,7 @@ func deleteQueue(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64
 
 	resp, err := core.DeleteQueue(&coreapis.DeleteQueueRequest{
 		Payload: &corepb.DeleteQueueRequest{AccountId: accountId, QueueName: queueName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1099,7 +1098,7 @@ func deleteQueueWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, account
 
 	resp, err := core.DeleteQueue(&coreapis.DeleteQueueRequest{
 		Payload: &corepb.DeleteQueueRequest{AccountId: accountId, QueueName: queueName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1113,7 +1112,7 @@ func getQueueByName(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uin
 
 	resp, err := core.GetQueueByName(&coreapis.GetQueueByNameRequest{
 		Payload: &corepb.GetQueueByNameRequest{AccountId: accountId, QueueName: queueName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1130,7 +1129,7 @@ func swapQueueId(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64
 	resp, err := core.SwapQueueId(&coreapis.SwapQueueIdRequest{
 		Payload: &corepb.SwapQueueIdRequest{AccountId: accountId, QueueName: queueName, NewQueueId: newQueueId},
 		Now:     now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1146,7 +1145,7 @@ func swapQueueIdWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, account
 	resp, err := core.SwapQueueId(&coreapis.SwapQueueIdRequest{
 		Payload: &corepb.SwapQueueIdRequest{AccountId: accountId, QueueName: queueName, NewQueueId: newQueueId},
 		Now:     now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1175,7 +1174,7 @@ func createSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uin
 			MaxNumberOfSchedulesPerQueue: 10,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1200,7 +1199,7 @@ func createScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, acco
 			MaxNumberOfSchedulesPerQueue: 10,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1215,7 +1214,7 @@ func getSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uint64
 
 	resp, err := core.GetSchedule(&coreapis.GetScheduleRequest{
 		Payload: &corepb.GetScheduleRequest{AccountId: accountId, QueueName: queueName, ScheduleName: scheduleName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1231,7 +1230,7 @@ func getScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, account
 
 	resp, err := core.GetSchedule(&coreapis.GetScheduleRequest{
 		Payload: &corepb.GetScheduleRequest{AccountId: accountId, QueueName: queueName, ScheduleName: scheduleName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1260,7 +1259,7 @@ func updateSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uin
 			ExpectedVersion:           1,
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1285,7 +1284,7 @@ func updateScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, acco
 			Timezone:     "UTC",
 		},
 		Now: now.UnixNano(),
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1300,7 +1299,7 @@ func deleteSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uin
 
 	resp, err := core.DeleteSchedule(&coreapis.DeleteScheduleRequest{
 		Payload: &corepb.DeleteScheduleRequest{AccountId: accountId, QueueName: queueName, ScheduleName: scheduleName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1312,7 +1311,7 @@ func deleteScheduleWithError(t *testing.T, core coreapis.MoabQueuesCoreApi, acco
 
 	resp, err := core.DeleteSchedule(&coreapis.DeleteScheduleRequest{
 		Payload: &corepb.DeleteScheduleRequest{AccountId: accountId, QueueName: queueName, ScheduleName: scheduleName},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1330,7 +1329,7 @@ func listSchedules(t *testing.T, core coreapis.MoabQueuesCoreApi, queueId *corep
 			PaginationToken: paginationToken,
 			Limit:           limit,
 		},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1349,7 +1348,7 @@ func runQueuesGarbageCollection(t *testing.T, core coreapis.MoabQueuesCoreApi, g
 			GcRecordSchedulesPageSize: gcRecordSchedulesPageSize,
 			MaxVisitedSchedules:       maxVisitedSchedules,
 		},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -1361,7 +1360,7 @@ func dequeSchedules(t *testing.T, core coreapis.MoabQueuesCoreApi, dueBefore int
 
 	resp, err := core.DequeSchedules(&coreapis.DequeSchedulesRequest{
 		Payload: &corepb.DequeSchedulesRequest{DueBefore: dueBefore},
-	})
+	}, slog.Default())
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)

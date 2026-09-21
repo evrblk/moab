@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/evrblk/monstera"
@@ -162,7 +163,7 @@ func (c *Core) Close() {
 // GetTask returns a task by ID. It returns a NotFound application error if
 // no task with that ID exists, or if it exists but has already expired and
 // is only waiting on RunTasksGarbageCollection to be swept.
-func (c *Core) GetTask(req *coreapis.GetTaskRequest) (*coreapis.GetTaskResponse, error) {
+func (c *Core) GetTask(req *coreapis.GetTaskRequest, log *slog.Logger) (*coreapis.GetTaskResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -190,7 +191,7 @@ func (c *Core) GetTask(req *coreapis.GetTaskRequest) (*coreapis.GetTaskResponse,
 // GetStatistics returns a queue's task counters (enqueued, in-progress, and
 // dead), the age of its oldest still-enqueued task, and its current task id
 // sequence.
-func (c *Core) GetStatistics(req *coreapis.GetStatisticsRequest) (*coreapis.GetStatisticsResponse, error) {
+func (c *Core) GetStatistics(req *coreapis.GetStatisticsRequest, log *slog.Logger) (*coreapis.GetStatisticsResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -229,7 +230,7 @@ func (c *Core) GetStatistics(req *coreapis.GetStatisticsRequest) (*coreapis.GetS
 // TASK_STATE_INVALID (unset) lists every task regardless of state; a
 // specific state filters to it — see tasksTable.List for how each state maps
 // to a different physical index and sort order.
-func (c *Core) ListTasks(req *coreapis.ListTasksRequest) (*coreapis.ListTasksResponse, error) {
+func (c *Core) ListTasks(req *coreapis.ListTasksRequest, log *slog.Logger) (*coreapis.ListTasksResponse, error) {
 	txn := c.badgerStore.View()
 	defer txn.Discard()
 
@@ -258,7 +259,7 @@ func (c *Core) ListTasks(req *coreapis.ListTasksRequest) (*coreapis.ListTasksRes
 // DedupeKey already points at a live task applies entry.OverwriteOnDuplicate
 // to that existing task instead of creating a new one. An entry scheduled in
 // the past (or not scheduled at all) is enqueued as scheduled at req.Now.
-func (c *Core) Enqueue(req *coreapis.EnqueueRequest) (*coreapis.EnqueueResponse, error) {
+func (c *Core) Enqueue(req *coreapis.EnqueueRequest, log *slog.Logger) (*coreapis.EnqueueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -357,7 +358,7 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest) (*coreapis.EnqueueResponse,
 // below within this same transaction — then pulls fresh tasks from the
 // front of the queue. When req.Payload.DequeuingSettings sets a rate limit
 // or a max-in-progress bound, both are enforced against this call's yield.
-func (c *Core) Dequeue(req *coreapis.DequeueRequest) (*coreapis.DequeueResponse, error) {
+func (c *Core) Dequeue(req *coreapis.DequeueRequest, log *slog.Logger) (*coreapis.DequeueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -441,7 +442,7 @@ func (c *Core) Dequeue(req *coreapis.DequeueRequest) (*coreapis.DequeueResponse,
 // per its RetryStrategy or moves it to dead once retries are exhausted. An
 // entry for a task that no longer exists, or that is not currently in
 // progress, is silently ignored.
-func (c *Core) ReportStatus(req *coreapis.ReportStatusRequest) (*coreapis.ReportStatusResponse, error) {
+func (c *Core) ReportStatus(req *coreapis.ReportStatusRequest, log *slog.Logger) (*coreapis.ReportStatusResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -462,7 +463,7 @@ func (c *Core) ReportStatus(req *coreapis.ReportStatusRequest) (*coreapis.Report
 
 // DeleteTasks deletes the given task ids from a queue, regardless of their
 // current state. Task ids that do not exist are silently ignored.
-func (c *Core) DeleteTasks(req *coreapis.DeleteTasksRequest) (*coreapis.DeleteTasksResponse, error) {
+func (c *Core) DeleteTasks(req *coreapis.DeleteTasksRequest, log *slog.Logger) (*coreapis.DeleteTasksResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -501,7 +502,7 @@ func (c *Core) DeleteTasks(req *coreapis.DeleteTasksRequest) (*coreapis.DeleteTa
 // death so a fresh task can reuse it right away, so by the time someone
 // restarts the old one, a different live task may have already claimed the
 // key — restart must re-check, not assume it's still free).
-func (c *Core) RestartTasks(req *coreapis.RestartTasksRequest) (*coreapis.RestartTasksResponse, error) {
+func (c *Core) RestartTasks(req *coreapis.RestartTasksRequest, log *slog.Logger) (*coreapis.RestartTasksResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -623,7 +624,7 @@ func (c *Core) restartTask(txn *store.Txn, task *corepb.Task, now, scheduledAt, 
 // rotating the queue onto a fresh id via QueuesCore.SwapQueueId first and
 // passing the old id here. RunPurgeQueueGarbageCollection drains the marker
 // in bounded batches.
-func (c *Core) PurgeQueue(req *coreapis.PurgeQueueRequest) (*coreapis.PurgeQueueResponse, error) {
+func (c *Core) PurgeQueue(req *coreapis.PurgeQueueRequest, log *slog.Logger) (*coreapis.PurgeQueueResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -653,7 +654,7 @@ func (c *Core) PurgeQueue(req *coreapis.PurgeQueueRequest) (*coreapis.PurgeQueue
 // whose ExpiresAt has passed, this deletes unconditionally: a purged queue
 // id will never receive another task, so there is nothing left to preserve
 // under it.
-func (c *Core) RunPurgeQueueGarbageCollection(req *coreapis.RunPurgeQueueGarbageCollectionRequest) (*coreapis.RunPurgeQueueGarbageCollectionResponse, error) {
+func (c *Core) RunPurgeQueueGarbageCollection(req *coreapis.RunPurgeQueueGarbageCollectionRequest, log *slog.Logger) (*coreapis.RunPurgeQueueGarbageCollectionResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
@@ -738,7 +739,7 @@ recordsLoop:
 // of their current state, bounded by req.Payload.MaxVisitedTasks (total per
 // call, default defaultGCMaxVisitedTasks) fetched from the expiration index
 // req.Payload.PageSize entries at a time (default defaultGCPageSize).
-func (c *Core) RunTasksGarbageCollection(req *coreapis.RunTasksGarbageCollectionRequest) (*coreapis.RunTasksGarbageCollectionResponse, error) {
+func (c *Core) RunTasksGarbageCollection(req *coreapis.RunTasksGarbageCollectionRequest, log *slog.Logger) (*coreapis.RunTasksGarbageCollectionResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 

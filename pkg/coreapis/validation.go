@@ -6,6 +6,7 @@ import (
 	monstera "github.com/evrblk/monstera"
 	mrpc "github.com/evrblk/monstera/rpc"
 	"io"
+	"log/slog"
 )
 
 type MoabQueuesValidatingCore struct {
@@ -30,109 +31,109 @@ func (v *MoabQueuesValidatingCore) Close() {
 	v.core.Close()
 }
 
-func (v *MoabQueuesValidatingCore) GetQueue(req *GetQueueRequest) (*GetQueueResponse, error) {
+func (v *MoabQueuesValidatingCore) GetQueue(req *GetQueueRequest, log *slog.Logger) (*GetQueueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &GetQueueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.GetQueue(req)
+	return v.core.GetQueue(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) GetQueueByName(req *GetQueueByNameRequest) (*GetQueueByNameResponse, error) {
+func (v *MoabQueuesValidatingCore) GetQueueByName(req *GetQueueByNameRequest, log *slog.Logger) (*GetQueueByNameResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &GetQueueByNameResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.GetQueueByName(req)
+	return v.core.GetQueueByName(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) ListQueues(req *ListQueuesRequest) (*ListQueuesResponse, error) {
+func (v *MoabQueuesValidatingCore) ListQueues(req *ListQueuesRequest, log *slog.Logger) (*ListQueuesResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &ListQueuesResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.ListQueues(req)
+	return v.core.ListQueues(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) GetSchedule(req *GetScheduleRequest) (*GetScheduleResponse, error) {
+func (v *MoabQueuesValidatingCore) GetSchedule(req *GetScheduleRequest, log *slog.Logger) (*GetScheduleResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &GetScheduleResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.GetSchedule(req)
+	return v.core.GetSchedule(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) DequeSchedules(req *DequeSchedulesRequest) (*DequeSchedulesResponse, error) {
+func (v *MoabQueuesValidatingCore) DequeSchedules(req *DequeSchedulesRequest, log *slog.Logger) (*DequeSchedulesResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &DequeSchedulesResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.DequeSchedules(req)
+	return v.core.DequeSchedules(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) ListSchedules(req *ListSchedulesRequest) (*ListSchedulesResponse, error) {
+func (v *MoabQueuesValidatingCore) ListSchedules(req *ListSchedulesRequest, log *slog.Logger) (*ListSchedulesResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &ListSchedulesResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.ListSchedules(req)
+	return v.core.ListSchedules(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) CreateQueue(req *CreateQueueRequest) (*CreateQueueResponse, error) {
+func (v *MoabQueuesValidatingCore) CreateQueue(req *CreateQueueRequest, log *slog.Logger) (*CreateQueueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &CreateQueueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.CreateQueue(req)
+	return v.core.CreateQueue(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) UpdateQueue(req *UpdateQueueRequest) (*UpdateQueueResponse, error) {
+func (v *MoabQueuesValidatingCore) UpdateQueue(req *UpdateQueueRequest, log *slog.Logger) (*UpdateQueueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &UpdateQueueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.UpdateQueue(req)
+	return v.core.UpdateQueue(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) DeleteQueue(req *DeleteQueueRequest) (*DeleteQueueResponse, error) {
+func (v *MoabQueuesValidatingCore) DeleteQueue(req *DeleteQueueRequest, log *slog.Logger) (*DeleteQueueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &DeleteQueueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.DeleteQueue(req)
+	return v.core.DeleteQueue(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) CreateSchedule(req *CreateScheduleRequest) (*CreateScheduleResponse, error) {
+func (v *MoabQueuesValidatingCore) CreateSchedule(req *CreateScheduleRequest, log *slog.Logger) (*CreateScheduleResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &CreateScheduleResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.CreateSchedule(req)
+	return v.core.CreateSchedule(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) UpdateSchedule(req *UpdateScheduleRequest) (*UpdateScheduleResponse, error) {
+func (v *MoabQueuesValidatingCore) UpdateSchedule(req *UpdateScheduleRequest, log *slog.Logger) (*UpdateScheduleResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &UpdateScheduleResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.UpdateSchedule(req)
+	return v.core.UpdateSchedule(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) DeleteSchedule(req *DeleteScheduleRequest) (*DeleteScheduleResponse, error) {
+func (v *MoabQueuesValidatingCore) DeleteSchedule(req *DeleteScheduleRequest, log *slog.Logger) (*DeleteScheduleResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &DeleteScheduleResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.DeleteSchedule(req)
+	return v.core.DeleteSchedule(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) ReportSchedulesStatus(req *ReportSchedulesStatusRequest) (*ReportSchedulesStatusResponse, error) {
+func (v *MoabQueuesValidatingCore) ReportSchedulesStatus(req *ReportSchedulesStatusRequest, log *slog.Logger) (*ReportSchedulesStatusResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &ReportSchedulesStatusResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.ReportSchedulesStatus(req)
+	return v.core.ReportSchedulesStatus(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) RunQueuesGarbageCollection(req *RunQueuesGarbageCollectionRequest) (*RunQueuesGarbageCollectionResponse, error) {
+func (v *MoabQueuesValidatingCore) RunQueuesGarbageCollection(req *RunQueuesGarbageCollectionRequest, log *slog.Logger) (*RunQueuesGarbageCollectionResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &RunQueuesGarbageCollectionResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.RunQueuesGarbageCollection(req)
+	return v.core.RunQueuesGarbageCollection(req, log)
 }
 
-func (v *MoabQueuesValidatingCore) SwapQueueId(req *SwapQueueIdRequest) (*SwapQueueIdResponse, error) {
+func (v *MoabQueuesValidatingCore) SwapQueueId(req *SwapQueueIdRequest, log *slog.Logger) (*SwapQueueIdResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &SwapQueueIdResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.SwapQueueId(req)
+	return v.core.SwapQueueId(req, log)
 }
 
 type MoabTasksValidatingCore struct {
@@ -157,79 +158,79 @@ func (v *MoabTasksValidatingCore) Close() {
 	v.core.Close()
 }
 
-func (v *MoabTasksValidatingCore) GetTask(req *GetTaskRequest) (*GetTaskResponse, error) {
+func (v *MoabTasksValidatingCore) GetTask(req *GetTaskRequest, log *slog.Logger) (*GetTaskResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &GetTaskResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.GetTask(req)
+	return v.core.GetTask(req, log)
 }
 
-func (v *MoabTasksValidatingCore) GetStatistics(req *GetStatisticsRequest) (*GetStatisticsResponse, error) {
+func (v *MoabTasksValidatingCore) GetStatistics(req *GetStatisticsRequest, log *slog.Logger) (*GetStatisticsResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &GetStatisticsResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.GetStatistics(req)
+	return v.core.GetStatistics(req, log)
 }
 
-func (v *MoabTasksValidatingCore) ListTasks(req *ListTasksRequest) (*ListTasksResponse, error) {
+func (v *MoabTasksValidatingCore) ListTasks(req *ListTasksRequest, log *slog.Logger) (*ListTasksResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &ListTasksResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.ListTasks(req)
+	return v.core.ListTasks(req, log)
 }
 
-func (v *MoabTasksValidatingCore) Enqueue(req *EnqueueRequest) (*EnqueueResponse, error) {
+func (v *MoabTasksValidatingCore) Enqueue(req *EnqueueRequest, log *slog.Logger) (*EnqueueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &EnqueueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.Enqueue(req)
+	return v.core.Enqueue(req, log)
 }
 
-func (v *MoabTasksValidatingCore) Dequeue(req *DequeueRequest) (*DequeueResponse, error) {
+func (v *MoabTasksValidatingCore) Dequeue(req *DequeueRequest, log *slog.Logger) (*DequeueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &DequeueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.Dequeue(req)
+	return v.core.Dequeue(req, log)
 }
 
-func (v *MoabTasksValidatingCore) ReportStatus(req *ReportStatusRequest) (*ReportStatusResponse, error) {
+func (v *MoabTasksValidatingCore) ReportStatus(req *ReportStatusRequest, log *slog.Logger) (*ReportStatusResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &ReportStatusResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.ReportStatus(req)
+	return v.core.ReportStatus(req, log)
 }
 
-func (v *MoabTasksValidatingCore) DeleteTasks(req *DeleteTasksRequest) (*DeleteTasksResponse, error) {
+func (v *MoabTasksValidatingCore) DeleteTasks(req *DeleteTasksRequest, log *slog.Logger) (*DeleteTasksResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &DeleteTasksResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.DeleteTasks(req)
+	return v.core.DeleteTasks(req, log)
 }
 
-func (v *MoabTasksValidatingCore) RestartTasks(req *RestartTasksRequest) (*RestartTasksResponse, error) {
+func (v *MoabTasksValidatingCore) RestartTasks(req *RestartTasksRequest, log *slog.Logger) (*RestartTasksResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &RestartTasksResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.RestartTasks(req)
+	return v.core.RestartTasks(req, log)
 }
 
-func (v *MoabTasksValidatingCore) PurgeQueue(req *PurgeQueueRequest) (*PurgeQueueResponse, error) {
+func (v *MoabTasksValidatingCore) PurgeQueue(req *PurgeQueueRequest, log *slog.Logger) (*PurgeQueueResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &PurgeQueueResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.PurgeQueue(req)
+	return v.core.PurgeQueue(req, log)
 }
 
-func (v *MoabTasksValidatingCore) RunTasksGarbageCollection(req *RunTasksGarbageCollectionRequest) (*RunTasksGarbageCollectionResponse, error) {
+func (v *MoabTasksValidatingCore) RunTasksGarbageCollection(req *RunTasksGarbageCollectionRequest, log *slog.Logger) (*RunTasksGarbageCollectionResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &RunTasksGarbageCollectionResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.RunTasksGarbageCollection(req)
+	return v.core.RunTasksGarbageCollection(req, log)
 }
 
-func (v *MoabTasksValidatingCore) RunPurgeQueueGarbageCollection(req *RunPurgeQueueGarbageCollectionRequest) (*RunPurgeQueueGarbageCollectionResponse, error) {
+func (v *MoabTasksValidatingCore) RunPurgeQueueGarbageCollection(req *RunPurgeQueueGarbageCollectionRequest, log *slog.Logger) (*RunPurgeQueueGarbageCollectionResponse, error) {
 	if err := req.Payload.Validate(); err != nil {
 		return &RunPurgeQueueGarbageCollectionResponse{ApplicationError: mrpc.NewError(mrpc.InvalidRequest, err.Error())}, nil
 	}
-	return v.core.RunPurgeQueueGarbageCollection(req)
+	return v.core.RunPurgeQueueGarbageCollection(req, log)
 }
