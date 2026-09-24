@@ -2,7 +2,7 @@ package workers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -17,13 +17,20 @@ import (
 // MoabTasks shard.
 type MoabTasksGCWorker struct {
 	coreApiClient coreapis.MoabClientApi
+	logger        *slog.Logger
 
 	worker *workers.IntervalWorker
 }
 
-func NewMoabTasksGCWorker(coreApiClient coreapis.MoabClientApi) *MoabTasksGCWorker {
+// NewMoabTasksGCWorker builds a MoabTasksGCWorker logging to logger, or to
+// slog.Default() if logger is nil.
+func NewMoabTasksGCWorker(coreApiClient coreapis.MoabClientApi, logger *slog.Logger) *MoabTasksGCWorker {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &MoabTasksGCWorker{
 		coreApiClient: coreApiClient,
+		logger:        logger,
 		worker:        workers.NewIntervalWorker(time.Duration(5) * time.Second),
 	}
 }
@@ -39,7 +46,7 @@ func (w *MoabTasksGCWorker) Stop() {
 func (w *MoabTasksGCWorker) handler() {
 	shards, err := w.coreApiClient.ListShards("MoabTasks")
 	if err != nil {
-		log.Printf("ListShards(\"MoabTasks\"): %v", err)
+		w.logger.Error("ListShards failed", "error", err)
 		return
 	}
 
@@ -68,7 +75,7 @@ func (w *MoabTasksGCWorker) runGarbageCollection(shardId string, now time.Time) 
 	}, shardId)
 	if err != nil {
 		moabTasksGCWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-		log.Printf("RunTasksGarbageCollection failed: %v", err)
+		w.logger.Error("RunTasksGarbageCollection failed", "shard_id", shardId, "error", err)
 	}
 
 	// Drains tasks left behind by PurgeQueue under a rotated-out queue id.
@@ -81,6 +88,6 @@ func (w *MoabTasksGCWorker) runGarbageCollection(shardId string, now time.Time) 
 	}, shardId)
 	if err != nil {
 		moabTasksGCWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-		log.Printf("RunPurgeQueueGarbageCollection failed: %v", err)
+		w.logger.Error("RunPurgeQueueGarbageCollection failed", "shard_id", shardId, "error", err)
 	}
 }

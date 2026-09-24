@@ -37,10 +37,9 @@ func main() {
 
 	// Start Prometheus metrics server
 	RegisterMetrics()
-	metricsSrv := metrics.NewMetricsServer(config.PrometheusPort)
+	metricsSrv := metrics.NewMetricsServer(config.PrometheusListenAddr)
 	metricsSrv.Start()
 	defer metricsSrv.Stop()
-	log.Printf("Prometheus metrics available at http://localhost:%d/metrics", config.PrometheusPort)
 
 	// Connect to Moab
 	log.Printf("Connecting to Moab at %s...", config.Endpoint)

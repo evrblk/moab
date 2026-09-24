@@ -51,7 +51,7 @@ $ make moab
 ### Single-node mode
 
 ```shell
-$ ./cmd/moab/moab run single-node --port=8000 --data-dir=./data
+$ ./cmd/moab/moab run single-node --gateway-listen-addr=:8000 --data-dir=./data
 ```
 
 ### Clustered mode

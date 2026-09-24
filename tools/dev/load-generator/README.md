@@ -28,7 +28,7 @@ A running Moab server — single-node or gateway.
 
 ```bash
 cd cmd/moab
-go run . run single-node --port=8000 --data-dir=./data
+go run . run single-node --gateway-listen-addr=:8000 --data-dir=./data
 ```
 
 ### 2. Run the load generator
@@ -101,7 +101,7 @@ unconsumed for that run.
 
 ### General
 
-- `--prometheus-port` - Prometheus metrics port (default: `2114`)
+- `--prometheus-listen-addr` - Prometheus metrics bind address (default: `:2114`)
 - `--log-interval` - Stats logging interval (default: `5s`)
 - `--cleanup` - Delete created queues on shutdown (default: `true`)
 
@@ -154,7 +154,7 @@ go run . \
 
 ### Prometheus Metrics
 
-Available at `http://localhost:2114/metrics` (or `--prometheus-port`):
+Available at `http://localhost:2114/metrics` (or `--prometheus-listen-addr`):
 
 - `load_generator_enqueue_requests_total{status}` - Enqueue RPCs by status
 - `load_generator_enqueue_duration_seconds` - Enqueue RPC latency histogram

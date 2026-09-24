@@ -3,6 +3,7 @@ package v0
 import (
 	"context"
 	"log"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -1044,7 +1045,7 @@ func setupMoabCoreApiClient() coreapis.MoabClientApi {
 			return tasks.NewCore(dataStore, replicaPrefix(shardId), lowerBound, upperBound)
 		},
 	}
-	return coreapis.NewMoabNonclusteredStub(16, coresFactory)
+	return coreapis.NewMoabNonclusteredStub(16, coresFactory, slog.Default())
 }
 
 func setupMoabApiServer() *MoabApiServer {

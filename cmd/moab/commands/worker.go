@@ -2,12 +2,12 @@ package commands
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 
 	"github.com/evrblk/monstera"
@@ -19,24 +19,28 @@ import (
 )
 
 var workerCmdCfg struct {
-	prometheusPort int
-	nodes          monsteraNodesFlags
+	prometheusListenAddr string
+	nodes                monsteraNodesFlags
+	log                  logFlags
 }
 
 var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "Run Moab background worker",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Initializing Moab Worker...")
+		baseLogger := setupLogger(workerCmdCfg.log).With("service_name", "worker")
+		baseLogger.Info("Initializing Moab Worker...")
 
 		// Metrics
-		metricsSrv := metrics.NewMetricsServer(workerCmdCfg.prometheusPort)
+		workers.RegisterMetrics(prometheus.DefaultRegisterer)
+		metricsSrv := metrics.NewMetricsServer(workerCmdCfg.prometheusListenAddr)
 		metricsSrv.Start()
 
 		// Node discovery + polling config provider.
 		discovery, err := buildNodeDiscovery(workerCmdCfg.nodes)
 		if err != nil {
-			log.Fatal(err)
+			baseLogger.Error(err.Error())
+			os.Exit(1)
 		}
 		adminClient := monstera_grpc.NewAdminClient()
 		provider := monstera.NewPollingClusterConfigProvider(discovery, adminClient, monstera.PollingOptions{})
@@ -47,7 +51,8 @@ var workerCmd = &cobra.Command{
 
 		ctx, cancel := context.WithCancel(context.Background())
 		if err := monsteraClient.Start(ctx); err != nil {
-			log.Fatalf("failed to start monstera client: %v", err)
+			baseLogger.Error("failed to start monstera client", "error", err)
+			os.Exit(1)
 		}
 		defer monsteraClient.Stop()
 		defer adminClient.Close()
@@ -56,11 +61,11 @@ var workerCmd = &cobra.Command{
 		moabCoreApiClient := coreapis.NewMoabMonsteraStub(monsteraClient)
 
 		// Moab workers
-		moabQueuesCronWorker := workers.NewMoabQueuesCronWorker(moabCoreApiClient)
+		moabQueuesCronWorker := workers.NewMoabQueuesCronWorker(moabCoreApiClient, baseLogger.With("component", "moab-queues-cron-worker"))
 		moabQueuesCronWorker.Start()
-		moabTasksGCWorker := workers.NewMoabTasksGCWorker(moabCoreApiClient)
+		moabTasksGCWorker := workers.NewMoabTasksGCWorker(moabCoreApiClient, baseLogger.With("component", "moab-tasks-gc-worker"))
 		moabTasksGCWorker.Start()
-		moabQueuesGCWorker := workers.NewMoabQueuesGCWorker(moabCoreApiClient)
+		moabQueuesGCWorker := workers.NewMoabQueuesGCWorker(moabCoreApiClient, baseLogger.With("component", "moab-queues-gc-worker"))
 		moabQueuesGCWorker.Start()
 
 		wg := sync.WaitGroup{}
@@ -70,7 +75,7 @@ var workerCmd = &cobra.Command{
 		go func() {
 			select {
 			case <-c:
-				log.Println("Received SIGINT. Shutting down...")
+				baseLogger.Info("Received SIGINT. Shutting down...")
 				cancel()
 				metricsSrv.Stop()
 				moabQueuesCronWorker.Stop()
@@ -92,7 +97,8 @@ var workerCmd = &cobra.Command{
 func init() {
 	runCmd.AddCommand(workerCmd)
 
-	workerCmd.PersistentFlags().IntVarP(&workerCmdCfg.prometheusPort, "prometheus-port", "", 2112, "Prometheus metrics port")
+	workerCmd.PersistentFlags().StringVarP(&workerCmdCfg.prometheusListenAddr, "prometheus-listen-addr", "", ":2112", "Prometheus metrics bind address")
 
 	addMonsteraNodesFlags(workerCmd, &workerCmdCfg.nodes)
+	addLogFlags(workerCmd, &workerCmdCfg.log)
 }

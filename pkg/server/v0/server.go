@@ -2,34 +2,13 @@ package v0
 
 import (
 	"context"
-	"log"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	moabpb "github.com/evrblk/evrblk-go/moab/v0"
 	"github.com/evrblk/moab/pkg/coreapis"
 	"github.com/evrblk/moab/pkg/moab"
-)
-
-var (
-	tasksEnqueuedTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "moab_tasks_enqueued_total",
-		Help: "Moab tasks enqueued total",
-	})
-	tasksDequeuedTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "moab_tasks_dequeued_total",
-		Help: "Moab tasks dequeued total",
-	})
-	tasksEnqueuedBytesTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "moab_tasks_enqueued_bytes_total",
-		Help: "Moab tasks enqueued total size",
-	})
-	tasksDequeuedBytesTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "moab_bytes_dequeued_bytes_total",
-		Help: "Moab tasks dequeued total size",
-	})
 )
 
 type MoabApiServer struct {
@@ -39,7 +18,6 @@ type MoabApiServer struct {
 }
 
 func (s *MoabApiServer) Close() {
-	log.Println("Stopping MoabApiServer...")
 	s.handler.Stop()
 }
 

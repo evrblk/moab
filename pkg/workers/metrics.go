@@ -48,14 +48,17 @@ var (
 	}, []string{"shard_id"})
 )
 
-func init() {
-	prometheus.MustRegister(moabQueuesCronWorkerDuration)
-	prometheus.MustRegister(moabQueuesCronWorkerSchedulesTotal)
-	prometheus.MustRegister(moabQueuesCronWorkerErrorsTotal)
+// RegisterMetrics registers the worker metrics with the given registerer.
+// Call once at startup, e.g. RegisterMetrics(prometheus.DefaultRegisterer).
+// It panics if a metric is already registered.
+func RegisterMetrics(registerer prometheus.Registerer) {
+	registerer.MustRegister(moabQueuesCronWorkerDuration)
+	registerer.MustRegister(moabQueuesCronWorkerSchedulesTotal)
+	registerer.MustRegister(moabQueuesCronWorkerErrorsTotal)
 
-	prometheus.MustRegister(moabTasksGCWorkerDuration)
-	prometheus.MustRegister(moabTasksGCWorkerErrorsTotal)
+	registerer.MustRegister(moabTasksGCWorkerDuration)
+	registerer.MustRegister(moabTasksGCWorkerErrorsTotal)
 
-	prometheus.MustRegister(moabQueuesGCWorkerDuration)
-	prometheus.MustRegister(moabQueuesGCWorkerErrorsTotal)
+	registerer.MustRegister(moabQueuesGCWorkerDuration)
+	registerer.MustRegister(moabQueuesGCWorkerErrorsTotal)
 }

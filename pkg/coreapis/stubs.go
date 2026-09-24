@@ -1340,6 +1340,7 @@ type MoabNonclusteredApplicationCoresFactory struct {
 type MoabNonclusteredStub struct {
 	moabQueuesCores []*moabQueuesCoreNonclusteredAdapter
 	moabTasksCores  []*moabTasksCoreNonclusteredAdapter
+	logger          *slog.Logger
 }
 
 var _ MoabClientApi = &MoabNonclusteredStub{}
@@ -1357,7 +1358,7 @@ func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueu
 			resp, err := adapter.core.GetQueue(&mrpc.ReadRequest[*corepb.GetQueueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1388,7 +1389,7 @@ func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.G
 			resp, err := adapter.core.GetQueueByName(&mrpc.ReadRequest[*corepb.GetQueueByNameRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1419,7 +1420,7 @@ func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQ
 			resp, err := adapter.core.ListQueues(&mrpc.ReadRequest[*corepb.ListQueuesRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1450,7 +1451,7 @@ func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetS
 			resp, err := adapter.core.GetSchedule(&mrpc.ReadRequest[*corepb.GetScheduleRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1480,7 +1481,7 @@ func (s *MoabNonclusteredStub) DequeSchedules(ctx context.Context, req *corepb.D
 			resp, err := adapter.core.DequeSchedules(&mrpc.ReadUnshardedRequest[*corepb.DequeSchedulesRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1511,7 +1512,7 @@ func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.Li
 			resp, err := adapter.core.ListSchedules(&mrpc.ReadRequest[*corepb.ListSchedulesRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1542,7 +1543,7 @@ func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.Crea
 			resp, err := adapter.core.CreateQueue(&mrpc.UpdateRequest[*corepb.CreateQueueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1573,7 +1574,7 @@ func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.Upda
 			resp, err := adapter.core.UpdateQueue(&mrpc.UpdateRequest[*corepb.UpdateQueueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1604,7 +1605,7 @@ func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.Dele
 			resp, err := adapter.core.DeleteQueue(&mrpc.UpdateRequest[*corepb.DeleteQueueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1635,7 +1636,7 @@ func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.C
 			resp, err := adapter.core.CreateSchedule(&mrpc.UpdateRequest[*corepb.CreateScheduleRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1666,7 +1667,7 @@ func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.U
 			resp, err := adapter.core.UpdateSchedule(&mrpc.UpdateRequest[*corepb.UpdateScheduleRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1697,7 +1698,7 @@ func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.D
 			resp, err := adapter.core.DeleteSchedule(&mrpc.UpdateRequest[*corepb.DeleteScheduleRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1727,7 +1728,7 @@ func (s *MoabNonclusteredStub) ReportSchedulesStatus(ctx context.Context, req *c
 			resp, err := adapter.core.ReportSchedulesStatus(&mrpc.UpdateUnshardedRequest[*corepb.ReportSchedulesStatusRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1757,7 +1758,7 @@ func (s *MoabNonclusteredStub) RunQueuesGarbageCollection(ctx context.Context, r
 			resp, err := adapter.core.RunQueuesGarbageCollection(&mrpc.UpdateUnshardedRequest[*corepb.RunQueuesGarbageCollectionRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1788,7 +1789,7 @@ func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.Swap
 			resp, err := adapter.core.SwapQueueId(&mrpc.UpdateRequest[*corepb.SwapQueueIdRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1819,7 +1820,7 @@ func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskR
 			resp, err := adapter.core.GetTask(&mrpc.ReadRequest[*corepb.GetTaskRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1850,7 +1851,7 @@ func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.Ge
 			resp, err := adapter.core.GetStatistics(&mrpc.ReadRequest[*corepb.GetStatisticsRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1881,7 +1882,7 @@ func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTa
 			resp, err := adapter.core.ListTasks(&mrpc.ReadRequest[*corepb.ListTasksRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1912,7 +1913,7 @@ func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueR
 			resp, err := adapter.core.Enqueue(&mrpc.UpdateRequest[*corepb.EnqueueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1943,7 +1944,7 @@ func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueR
 			resp, err := adapter.core.Dequeue(&mrpc.UpdateRequest[*corepb.DequeueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -1974,7 +1975,7 @@ func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.Rep
 			resp, err := adapter.core.ReportStatus(&mrpc.UpdateRequest[*corepb.ReportStatusRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -2005,7 +2006,7 @@ func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.Dele
 			resp, err := adapter.core.DeleteTasks(&mrpc.UpdateRequest[*corepb.DeleteTasksRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -2036,7 +2037,7 @@ func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.Res
 			resp, err := adapter.core.RestartTasks(&mrpc.UpdateRequest[*corepb.RestartTasksRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -2067,7 +2068,7 @@ func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.Purge
 			resp, err := adapter.core.PurgeQueue(&mrpc.UpdateRequest[*corepb.PurgeQueueRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -2097,7 +2098,7 @@ func (s *MoabNonclusteredStub) RunTasksGarbageCollection(ctx context.Context, re
 			resp, err := adapter.core.RunTasksGarbageCollection(&mrpc.UpdateUnshardedRequest[*corepb.RunTasksGarbageCollectionRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -2127,7 +2128,7 @@ func (s *MoabNonclusteredStub) RunPurgeQueueGarbageCollection(ctx context.Contex
 			resp, err := adapter.core.RunPurgeQueueGarbageCollection(&mrpc.UpdateUnshardedRequest[*corepb.RunPurgeQueueGarbageCollectionRequest]{
 				Now:     now,
 				Payload: req,
-			}, slog.Default())
+			}, s.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -2164,9 +2165,13 @@ func (s *MoabNonclusteredStub) ListShards(applicationName string) ([]string, err
 	}
 }
 
-func NewMoabNonclusteredStub(shardsPerApp int, coresFactory *MoabNonclusteredApplicationCoresFactory) *MoabNonclusteredStub {
+func NewMoabNonclusteredStub(shardsPerApp int, coresFactory *MoabNonclusteredApplicationCoresFactory, logger *slog.Logger) *MoabNonclusteredStub {
 	if shardsPerApp < 1 || int64(shardsPerApp) > int64(cluster.KeyspacePerApplication) || shardsPerApp&(shardsPerApp-1) != 0 {
 		panic(fmt.Sprintf("shardsPerApp must be a power of 2 between 1 and 2^32, got %d", shardsPerApp))
+	}
+
+	if logger == nil {
+		logger = slog.Default()
 	}
 
 	moabQueuesCores := make([]*moabQueuesCoreNonclusteredAdapter, shardsPerApp)
@@ -2186,5 +2191,5 @@ func NewMoabNonclusteredStub(shardsPerApp int, coresFactory *MoabNonclusteredApp
 		moabTasksCores[i] = &moabTasksCoreNonclusteredAdapter{core: coresFactory.MoabTasksCoreFactoryFunc(moabTasksShardId, lowerBound, upperBound), id: moabTasksShardId, lowerBound: lowerBound, upperBound: upperBound}
 
 	}
-	return &MoabNonclusteredStub{moabQueuesCores: moabQueuesCores, moabTasksCores: moabTasksCores}
+	return &MoabNonclusteredStub{moabQueuesCores: moabQueuesCores, moabTasksCores: moabTasksCores, logger: logger}
 }

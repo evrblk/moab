@@ -55,9 +55,9 @@ type Config struct {
 	QueueSetupConcurrency int
 
 	// General
-	PrometheusPort int
-	LogInterval    time.Duration
-	Cleanup        bool
+	PrometheusListenAddr string
+	LogInterval          time.Duration
+	Cleanup              bool
 }
 
 func parseFlags() *Config {
@@ -96,7 +96,7 @@ func parseFlags() *Config {
 	flag.IntVar(&config.QueueSetupConcurrency, "queue-setup-concurrency", 32, "Number of concurrent GetOrCreateQueue calls during setup")
 
 	// General
-	flag.IntVar(&config.PrometheusPort, "prometheus-port", 2114, "Prometheus metrics port")
+	flag.StringVar(&config.PrometheusListenAddr, "prometheus-listen-addr", ":2114", "Prometheus metrics bind address")
 	flag.DurationVar(&config.LogInterval, "log-interval", 5*time.Second, "Stats logging interval")
 	flag.BoolVar(&config.Cleanup, "cleanup", true, "Delete created queues on shutdown")
 

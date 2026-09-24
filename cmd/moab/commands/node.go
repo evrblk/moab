@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -24,27 +23,31 @@ import (
 )
 
 var nodeCmdCfg struct {
-	prometheusPort int
-	dataDir        string
-	listenAddress  string
+	prometheusListenAddr string
+	dataDir              string
+	monsteraListenAddr   string
+	log                  logFlags
+	coreLog              nodeCoreLogFlags
 }
 
 var nodeCmd = &cobra.Command{
 	Use:   "node",
 	Short: "Run Monstera node with Moab cores",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Initializing Moab Node server...")
+		baseLogger := setupLogger(nodeCmdCfg.log).With("service_name", "node")
+		baseLogger.Info("Initializing Moab Node server...", "address", nodeCmdCfg.monsteraListenAddr)
 
 		// Metrics
 		monstera.RegisterMetrics(prometheus.DefaultRegisterer)
 		coreapis.RegisterMetrics(prometheus.DefaultRegisterer)
-		metricsSrv := metrics.NewMetricsServer(nodeCmdCfg.prometheusPort)
+		metricsSrv := metrics.NewMetricsServer(nodeCmdCfg.prometheusListenAddr)
 		metricsSrv.Start()
 
 		// Create shared Badger store for application cores
 		dataStore, err := store.NewBadgerStore(store.DefaultOptions(filepath.Join(nodeCmdCfg.dataDir, "cores")))
 		if err != nil {
-			log.Fatal(err)
+			baseLogger.Error(err.Error())
+			os.Exit(1)
 		}
 
 		// Node-local registry handing out a stable two-byte prefix per replica, so
@@ -53,7 +56,8 @@ var nodeCmd = &cobra.Command{
 		replicaPrefix := func(replicaId string) []byte {
 			prefix, err := replicaRegistry.GetOrAssignPrefix(replicaId)
 			if err != nil {
-				log.Fatalf("failed to assign replica prefix for replica %s: %v", replicaId, err)
+				baseLogger.Error("failed to assign replica prefix", "replica_id", replicaId, "error", err)
+				os.Exit(1)
 			}
 			return prefix
 		}
@@ -79,16 +83,20 @@ var nodeCmd = &cobra.Command{
 
 		transport := monstera_grpc.NewDataPlaneClient()
 
+		coreLogPolicy, coreLogDestination := setupCoreLogging(nodeCmdCfg.coreLog)
 		monsteraNodeConfig := monstera.DefaultMonsteraNodeConfig
+		monsteraNodeConfig.CoreLogPolicy = coreLogPolicy
+		monsteraNodeConfig.CoreLogDestination = coreLogDestination
 
 		monsteraNode, err := monstera.NewNode(nodeCmdCfg.dataDir, applicationDescriptors, monsteraNodeConfig, transport)
 		if err != nil {
-			log.Fatalf("failed to create Monstera node: %v", err)
+			baseLogger.Error("failed to create Monstera node", "error", err)
+			os.Exit(1)
 		}
 
 		monsteraNode.Start()
 
-		monsteraServer := monstera_grpc.NewGrpcServer(monsteraNode)
+		monsteraServer := monstera_grpc.NewGrpcServer(monsteraNode, monstera_grpc.WithServerLogger(baseLogger.With("component", "monstera-grpc")))
 
 		cleanupDone := &sync.WaitGroup{}
 		cleanupDone.Add(1)
@@ -99,7 +107,7 @@ var nodeCmd = &cobra.Command{
 		go func() {
 			select {
 			case <-c:
-				log.Println("Received SIGINT. Shutting down...")
+				baseLogger.Info("Received SIGINT. Shutting down...")
 				cancel()
 				monsteraNode.Stop()
 				monsteraServer.Stop()
@@ -108,39 +116,33 @@ var nodeCmd = &cobra.Command{
 			case <-ctx.Done():
 			}
 			cleanupDone.Done()
-			log.Printf("Cleanup done")
+			baseLogger.Info("Cleanup done")
 		}()
 		defer func() {
 			signal.Stop(c)
 			cancel()
 		}()
 
-		err = monsteraServer.Serve(nodeCmdCfg.listenAddress)
+		err = monsteraServer.Serve(nodeCmdCfg.monsteraListenAddr)
 		if err != nil {
-			log.Printf("Monstera server stopped: %s", err)
+			baseLogger.Info("Monstera server stopped", "error", err)
 		} else {
-			log.Printf("Monstera server stopped")
+			baseLogger.Info("Monstera server stopped")
 		}
 
 		cleanupDone.Wait()
 
-		log.Printf("Exiting...")
+		baseLogger.Info("Exiting...")
 	},
 }
 
 func init() {
 	runCmd.AddCommand(nodeCmd)
 
-	nodeCmd.PersistentFlags().IntVarP(&nodeCmdCfg.prometheusPort, "prometheus-port", "", 2112, "Prometheus metrics port")
+	nodeCmd.PersistentFlags().StringVarP(&nodeCmdCfg.prometheusListenAddr, "prometheus-listen-addr", "", ":2112", "Prometheus metrics bind address")
+	nodeCmd.PersistentFlags().StringVarP(&nodeCmdCfg.monsteraListenAddr, "monstera-listen-addr", "", ":9000", "Monstera gRPC bind address")
+	nodeCmd.PersistentFlags().StringVarP(&nodeCmdCfg.dataDir, "data-dir", "", "./data", "Base directory for data")
 
-	nodeCmd.PersistentFlags().StringVarP(&nodeCmdCfg.dataDir, "data-dir", "", "", "Base directory for data")
-	err := nodeCmd.MarkPersistentFlagRequired("data-dir")
-	if err != nil {
-		panic(err)
-	}
-	nodeCmd.PersistentFlags().StringVarP(&nodeCmdCfg.listenAddress, "listen", "", "", "gRPC bind address")
-	err = nodeCmd.MarkPersistentFlagRequired("listen")
-	if err != nil {
-		panic(err)
-	}
+	addLogFlags(nodeCmd, &nodeCmdCfg.log)
+	addNodeCoreLogFlags(nodeCmd, &nodeCmdCfg.coreLog)
 }

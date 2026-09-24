@@ -1,35 +1,34 @@
 package v0
 
 import (
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
-	totalRequestsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "moab_server_requests_total",
-		Help: "Total number of requests",
-	}, []string{"method"})
-	failedRequestsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "moab_server_requests_failed",
-		Help: "Number of failed requests",
-	}, []string{"method", "error"})
-	requestsDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:                            "moab_server_request_duration_seconds",
-		Help:                            "Request duration",
-		NativeHistogramBucketFactor:     1.1,
-		NativeHistogramMaxBucketNumber:  100,
-		NativeHistogramMinResetDuration: time.Hour,
-	}, []string{"method"})
+	tasksEnqueuedTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "moab_tasks_enqueued_total",
+		Help: "Moab tasks enqueued total",
+	})
+	tasksDequeuedTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "moab_tasks_dequeued_total",
+		Help: "Moab tasks dequeued total",
+	})
+	tasksEnqueuedBytesTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "moab_tasks_enqueued_bytes_total",
+		Help: "Moab tasks enqueued total size",
+	})
+	tasksDequeuedBytesTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "moab_bytes_dequeued_bytes_total",
+		Help: "Moab tasks dequeued total size",
+	})
 )
 
-func RegisterMetrics() {
-	prometheus.MustRegister(totalRequestsCounter)
-	prometheus.MustRegister(failedRequestsCounter)
-	prometheus.MustRegister(requestsDuration)
-	prometheus.MustRegister(tasksEnqueuedTotal)
-	prometheus.MustRegister(tasksDequeuedTotal)
-	prometheus.MustRegister(tasksEnqueuedBytesTotal)
-	prometheus.MustRegister(tasksDequeuedBytesTotal)
+// RegisterMetrics registers the server metrics with the given registerer.
+// Call once at startup, e.g. RegisterMetrics(prometheus.DefaultRegisterer).
+// It panics if a metric is already registered.
+func RegisterMetrics(registerer prometheus.Registerer) {
+	registerer.MustRegister(tasksEnqueuedTotal)
+	registerer.MustRegister(tasksDequeuedTotal)
+	registerer.MustRegister(tasksEnqueuedBytesTotal)
+	registerer.MustRegister(tasksDequeuedBytesTotal)
 }

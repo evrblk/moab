@@ -2,7 +2,7 @@ package workers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -18,13 +18,20 @@ import (
 // MoabQueues shard and enqueues the resulting tasks.
 type MoabQueuesCronWorker struct {
 	coreApiClient coreapis.MoabClientApi
+	logger        *slog.Logger
 
 	worker *workers.IntervalWorker
 }
 
-func NewMoabQueuesCronWorker(coreApiClient coreapis.MoabClientApi) *MoabQueuesCronWorker {
+// NewMoabQueuesCronWorker builds a MoabQueuesCronWorker logging to logger,
+// or to slog.Default() if logger is nil.
+func NewMoabQueuesCronWorker(coreApiClient coreapis.MoabClientApi, logger *slog.Logger) *MoabQueuesCronWorker {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &MoabQueuesCronWorker{
 		coreApiClient: coreApiClient,
+		logger:        logger,
 		worker:        workers.NewIntervalWorker(time.Duration(5) * time.Second),
 	}
 }
@@ -40,7 +47,7 @@ func (w *MoabQueuesCronWorker) Stop() {
 func (w *MoabQueuesCronWorker) handler() {
 	shards, err := w.coreApiClient.ListShards("MoabQueues")
 	if err != nil {
-		log.Printf("ListShards(\"MoabQueues\"): %v", err)
+		w.logger.Error("ListShards failed", "error", err)
 		return
 	}
 
@@ -55,7 +62,7 @@ func (w *MoabQueuesCronWorker) handler() {
 
 			err := w.fetch(shardId, now)
 			if err != nil {
-				log.Printf("MoabQueuesCronWorker failed to process shard %s: %v", shardId, err)
+				w.logger.Error("failed to process shard", "shard_id", shardId, "error", err)
 			}
 		}(shard, now, done)
 	}
@@ -76,7 +83,7 @@ func (w *MoabQueuesCronWorker) fetch(shardId string, now time.Time) error {
 		}, shardId)
 		if err != nil {
 			moabQueuesCronWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-			log.Printf("DequeSchedules failed: %v", err)
+			w.logger.Error("DequeSchedules failed", "shard_id", shardId, "error", err)
 			return err
 		}
 
@@ -134,7 +141,7 @@ func (w *MoabQueuesCronWorker) fetch(shardId string, now time.Time) error {
 				scheduledAt, err = nextTick(scheduledAt, schedule)
 				if err != nil {
 					moabQueuesCronWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-					log.Printf("next tick failed: %v", err)
+					w.logger.Error("next tick failed", "shard_id", shardId, "error", err)
 					return err
 				}
 			}
@@ -145,7 +152,7 @@ func (w *MoabQueuesCronWorker) fetch(shardId string, now time.Time) error {
 			})
 			if err != nil {
 				moabQueuesCronWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-				log.Printf("Enqueue failed: %v", err)
+				w.logger.Error("Enqueue failed", "shard_id", shardId, "error", err)
 				return err
 			}
 
@@ -156,7 +163,7 @@ func (w *MoabQueuesCronWorker) fetch(shardId string, now time.Time) error {
 			}, shardId)
 			if err != nil {
 				moabQueuesCronWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-				log.Printf("ReportSchedulesStatus failed: %v", err)
+				w.logger.Error("ReportSchedulesStatus failed", "shard_id", shardId, "error", err)
 				return err
 			}
 		}
@@ -180,13 +187,20 @@ func nextTick(nanos int64, schedule *corepb.Schedule) (int64, error) {
 // MoabQueues shard.
 type MoabQueuesGCWorker struct {
 	coreApiClient coreapis.MoabClientApi
+	logger        *slog.Logger
 
 	worker *workers.IntervalWorker
 }
 
-func NewMoabQueuesGCWorker(coreApiClient coreapis.MoabClientApi) *MoabQueuesGCWorker {
+// NewMoabQueuesGCWorker builds a MoabQueuesGCWorker logging to logger, or to
+// slog.Default() if logger is nil.
+func NewMoabQueuesGCWorker(coreApiClient coreapis.MoabClientApi, logger *slog.Logger) *MoabQueuesGCWorker {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &MoabQueuesGCWorker{
 		coreApiClient: coreApiClient,
+		logger:        logger,
 		worker:        workers.NewIntervalWorker(time.Duration(5) * time.Second),
 	}
 }
@@ -202,7 +216,7 @@ func (w *MoabQueuesGCWorker) Stop() {
 func (w *MoabQueuesGCWorker) handler() {
 	shards, err := w.coreApiClient.ListShards("MoabQueues")
 	if err != nil {
-		log.Printf("ListShards(\"MoabQueues\"): %v", err)
+		w.logger.Error("ListShards failed", "error", err)
 		return
 	}
 
@@ -232,6 +246,6 @@ func (w *MoabQueuesGCWorker) runGarbageCollection(shardId string, now time.Time)
 	}, shardId)
 	if err != nil {
 		moabQueuesGCWorkerErrorsTotal.WithLabelValues(shardId).Inc()
-		log.Printf("RunQueuesGarbageCollection failed: %v", err)
+		w.logger.Error("RunQueuesGarbageCollection failed", "shard_id", shardId, "error", err)
 	}
 }

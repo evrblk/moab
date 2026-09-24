@@ -115,15 +115,23 @@ key.
 - **single-node** (`single_node.go`): one shared `BadgerStore`; `honey.ReplicaPrefixRegistry`
   assigns each of `--shards` (default 64, **must be a power of two — panics otherwise**) internal
   shards a node-local replica prefix; `MoabNonclusteredStub` over both cores' factories; gRPC
-  server + all 3 workers in one process. Dev/test shape.
+  server + all 3 workers in one process. Dev/test shape. Binds via `--gateway-listen-addr`
+  (default `:8000`).
 - **node** (`node.go`): a stateful Monstera node. Registers `MoabQueues` and `MoabTasks` as
   `CoreTypePersistedExclusive` application descriptors, each core wrapped in its generated adapter.
-  Raft-replicated, sharded per the cluster's config. Binds via `--listen host:port`.
+  Raft-replicated, sharded per the cluster's config. Binds via `--monstera-listen-addr` (default
+  `:9000`).
 - **gateway** (`gateway.go`): stateless. Discovers cluster config via exactly one of
   `--monstera-nodes`/`-file`/`-srv` (`discovery.go`), `MoabMonsteraStub` → gRPC server. Binds via
-  `--port` (all interfaces) — a different convention from `node`'s `--listen`.
+  `--gateway-listen-addr` (default `:8000`) — same flag name/convention as `single-node`.
 - **worker** (`worker.go`): stateless. Same discovery/client wiring as `gateway`, runs the 3
   workers only, no gRPC server of its own.
+
+All four run modes also take `--prometheus-listen-addr` (default `:2112`) and `--log-level`
+(`debug`/`info`/`warn`/`error`, default `info`; every command writes one JSON stream to stdout,
+tagged with a `component` attribute — see `logging.go`). `node` additionally takes
+`--core-log-level`, `--core-log-leader-only` (default `true`), and `--core-log-include-replay`
+(default `false`) for the raft core diagnostic log.
 
 ## Core conventions & invariants
 
