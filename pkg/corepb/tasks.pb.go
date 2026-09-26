@@ -177,6 +177,70 @@ func (ReportStatusRequestEntry_Status) EnumDescriptor() ([]byte, []int) {
 	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{10, 0}
 }
 
+type ReportStatusResponseEntry_Result int32
+
+const (
+	ReportStatusResponseEntry_RESULT_INVALID ReportStatusResponseEntry_Result = 0
+	// The status was applied: the task deleted (SUCCEEDED), retried or
+	// dead-lettered (FAILED), or its lease renewed (IN_PROGRESS).
+	ReportStatusResponseEntry_RESULT_OK ReportStatusResponseEntry_Result = 1
+	// No task exists under this id (never did, or an earlier report/reclaim
+	// already deleted it).
+	ReportStatusResponseEntry_RESULT_NOT_FOUND ReportStatusResponseEntry_Result = 2
+	// The task exists but is not IN_PROGRESS - already completed,
+	// dead-lettered, or re-enqueued by the time this report arrived.
+	ReportStatusResponseEntry_RESULT_NOT_IN_PROGRESS ReportStatusResponseEntry_Result = 3
+	// Attempt didn't match the task's current Attempts: its lease already
+	// lapsed and was reclaimed (and possibly redelivered) before this
+	// report arrived.
+	ReportStatusResponseEntry_RESULT_STALE_ATTEMPT ReportStatusResponseEntry_Result = 4
+)
+
+// Enum value maps for ReportStatusResponseEntry_Result.
+var (
+	ReportStatusResponseEntry_Result_name = map[int32]string{
+		0: "RESULT_INVALID",
+		1: "RESULT_OK",
+		2: "RESULT_NOT_FOUND",
+		3: "RESULT_NOT_IN_PROGRESS",
+		4: "RESULT_STALE_ATTEMPT",
+	}
+	ReportStatusResponseEntry_Result_value = map[string]int32{
+		"RESULT_INVALID":         0,
+		"RESULT_OK":              1,
+		"RESULT_NOT_FOUND":       2,
+		"RESULT_NOT_IN_PROGRESS": 3,
+		"RESULT_STALE_ATTEMPT":   4,
+	}
+)
+
+func (x ReportStatusResponseEntry_Result) Enum() *ReportStatusResponseEntry_Result {
+	p := new(ReportStatusResponseEntry_Result)
+	*p = x
+	return p
+}
+
+func (x ReportStatusResponseEntry_Result) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ReportStatusResponseEntry_Result) Descriptor() protoreflect.EnumDescriptor {
+	return file_pkg_corepb_tasks_proto_enumTypes[3].Descriptor()
+}
+
+func (ReportStatusResponseEntry_Result) Type() protoreflect.EnumType {
+	return &file_pkg_corepb_tasks_proto_enumTypes[3]
+}
+
+func (x ReportStatusResponseEntry_Result) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ReportStatusResponseEntry_Result.Descriptor instead.
+func (ReportStatusResponseEntry_Result) EnumDescriptor() ([]byte, []int) {
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{12, 0}
+}
+
 type RestartTasksResponseEntry_Result int32
 
 const (
@@ -216,11 +280,11 @@ func (x RestartTasksResponseEntry_Result) String() string {
 }
 
 func (RestartTasksResponseEntry_Result) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_corepb_tasks_proto_enumTypes[3].Descriptor()
+	return file_pkg_corepb_tasks_proto_enumTypes[4].Descriptor()
 }
 
 func (RestartTasksResponseEntry_Result) Type() protoreflect.EnumType {
-	return &file_pkg_corepb_tasks_proto_enumTypes[3]
+	return &file_pkg_corepb_tasks_proto_enumTypes[4]
 }
 
 func (x RestartTasksResponseEntry_Result) Number() protoreflect.EnumNumber {
@@ -229,27 +293,26 @@ func (x RestartTasksResponseEntry_Result) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RestartTasksResponseEntry_Result.Descriptor instead.
 func (RestartTasksResponseEntry_Result) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{17, 0}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{18, 0}
 }
 
 type Task struct {
-	state                     protoimpl.MessageState `protogen:"open.v1"`
-	Id                        *TaskId                `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Payload                   []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
-	CreatedAt                 int64                  `protobuf:"fixed64,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	ScheduledAt               int64                  `protobuf:"fixed64,4,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
-	ExpiresAt                 int64                  `protobuf:"fixed64,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	DedupeKey                 string                 `protobuf:"bytes,6,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
-	State                     TaskState              `protobuf:"varint,7,opt,name=state,proto3,enum=com.evrblk.moab.corepb.TaskState" json:"state,omitempty"`
-	Attempts                  int32                  `protobuf:"varint,8,opt,name=attempts,proto3" json:"attempts,omitempty"`
-	VisibleAt                 int64                  `protobuf:"fixed64,9,opt,name=visible_at,json=visibleAt,proto3" json:"visible_at,omitempty"`
-	LastFailedAt              int64                  `protobuf:"fixed64,10,opt,name=last_failed_at,json=lastFailedAt,proto3" json:"last_failed_at,omitempty"`
-	DebugInfo                 []byte                 `protobuf:"bytes,11,opt,name=debug_info,json=debugInfo,proto3" json:"debug_info,omitempty"`
-	KeepaliveTimeoutInSeconds int64                  `protobuf:"varint,12,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
-	RetryStrategy             *RetryStrategy         `protobuf:"bytes,13,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
-	ThreadId                  string                 `protobuf:"bytes,14,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            *TaskId                `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Payload       []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	CreatedAt     int64                  `protobuf:"fixed64,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ScheduledAt   int64                  `protobuf:"fixed64,4,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
+	ExpiresAt     int64                  `protobuf:"fixed64,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	DedupeKey     string                 `protobuf:"bytes,6,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
+	State         TaskState              `protobuf:"varint,7,opt,name=state,proto3,enum=com.evrblk.moab.corepb.TaskState" json:"state,omitempty"`
+	Attempts      int32                  `protobuf:"varint,8,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	VisibleAt     int64                  `protobuf:"fixed64,9,opt,name=visible_at,json=visibleAt,proto3" json:"visible_at,omitempty"`
+	LastFailedAt  int64                  `protobuf:"fixed64,10,opt,name=last_failed_at,json=lastFailedAt,proto3" json:"last_failed_at,omitempty"`
+	DebugInfo     []byte                 `protobuf:"bytes,11,opt,name=debug_info,json=debugInfo,proto3" json:"debug_info,omitempty"`
+	RetryStrategy *RetryStrategy         `protobuf:"bytes,12,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
+	ThreadId      string                 `protobuf:"bytes,13,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Task) Reset() {
@@ -357,13 +420,6 @@ func (x *Task) GetDebugInfo() []byte {
 		return x.DebugInfo
 	}
 	return nil
-}
-
-func (x *Task) GetKeepaliveTimeoutInSeconds() int64 {
-	if x != nil {
-		return x.KeepaliveTimeoutInSeconds
-	}
-	return 0
 }
 
 func (x *Task) GetRetryStrategy() *RetryStrategy {
@@ -613,17 +669,16 @@ func (x *EnqueueRequest) GetEntries() []*EnqueueRequestEntry {
 }
 
 type EnqueueRequestEntry struct {
-	state                     protoimpl.MessageState                     `protogen:"open.v1"`
-	Payload                   []byte                                     `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
-	ScheduledAt               int64                                      `protobuf:"fixed64,2,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
-	ExpiresAt                 int64                                      `protobuf:"fixed64,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	DedupeKey                 string                                     `protobuf:"bytes,4,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
-	KeepaliveTimeoutInSeconds int64                                      `protobuf:"varint,5,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
-	RetryStrategy             *RetryStrategy                             `protobuf:"bytes,6,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
-	OverwriteOnDuplicate      []EnqueueRequestEntry_OverwriteOnDuplicate `protobuf:"varint,7,rep,packed,name=overwrite_on_duplicate,json=overwriteOnDuplicate,proto3,enum=com.evrblk.moab.corepb.EnqueueRequestEntry_OverwriteOnDuplicate" json:"overwrite_on_duplicate,omitempty"`
-	ThreadId                  string                                     `protobuf:"bytes,8,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                protoimpl.MessageState                     `protogen:"open.v1"`
+	Payload              []byte                                     `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
+	ScheduledAt          int64                                      `protobuf:"fixed64,2,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
+	ExpiresAt            int64                                      `protobuf:"fixed64,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	DedupeKey            string                                     `protobuf:"bytes,4,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
+	RetryStrategy        *RetryStrategy                             `protobuf:"bytes,5,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
+	OverwriteOnDuplicate []EnqueueRequestEntry_OverwriteOnDuplicate `protobuf:"varint,6,rep,packed,name=overwrite_on_duplicate,json=overwriteOnDuplicate,proto3,enum=com.evrblk.moab.corepb.EnqueueRequestEntry_OverwriteOnDuplicate" json:"overwrite_on_duplicate,omitempty"`
+	ThreadId             string                                     `protobuf:"bytes,7,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *EnqueueRequestEntry) Reset() {
@@ -682,13 +737,6 @@ func (x *EnqueueRequestEntry) GetDedupeKey() string {
 		return x.DedupeKey
 	}
 	return ""
-}
-
-func (x *EnqueueRequestEntry) GetKeepaliveTimeoutInSeconds() int64 {
-	if x != nil {
-		return x.KeepaliveTimeoutInSeconds
-	}
-	return 0
 }
 
 func (x *EnqueueRequestEntry) GetRetryStrategy() *RetryStrategy {
@@ -766,8 +814,12 @@ type DequeueRequest struct {
 	// keepalive timeout is discovered here, whether the task should be
 	// dead-lettered or deleted outright once its retries are exhausted.
 	DeadLetterQueueConfig *DeadLetterQueueConfig `protobuf:"bytes,4,opt,name=dead_letter_queue_config,json=deadLetterQueueConfig,proto3" json:"dead_letter_queue_config,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Resolved from the request (or the Queue default) by the server. Applied
+	// to every task this call dequeues: task.KeepaliveTimeoutInSeconds is set
+	// from this value, and VisibleAt computed from it.
+	KeepaliveTimeoutInSeconds int64 `protobuf:"varint,5,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *DequeueRequest) Reset() {
@@ -826,6 +878,13 @@ func (x *DequeueRequest) GetDeadLetterQueueConfig() *DeadLetterQueueConfig {
 		return x.DeadLetterQueueConfig
 	}
 	return nil
+}
+
+func (x *DequeueRequest) GetKeepaliveTimeoutInSeconds() int64 {
+	if x != nil {
+		return x.KeepaliveTimeoutInSeconds
+	}
+	return 0
 }
 
 type DequeueResponse struct {
@@ -935,12 +994,17 @@ func (x *ReportStatusRequest) GetDeadLetterQueueConfig() *DeadLetterQueueConfig 
 }
 
 type ReportStatusRequestEntry struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	TaskId        *TaskId                         `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Attempt       int32                           `protobuf:"varint,2,opt,name=attempt,proto3" json:"attempt,omitempty"`
-	Status        ReportStatusRequestEntry_Status `protobuf:"varint,3,opt,name=status,proto3,enum=com.evrblk.moab.corepb.ReportStatusRequestEntry_Status" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state   protoimpl.MessageState          `protogen:"open.v1"`
+	TaskId  *TaskId                         `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Attempt int32                           `protobuf:"varint,2,opt,name=attempt,proto3" json:"attempt,omitempty"`
+	Status  ReportStatusRequestEntry_Status `protobuf:"varint,3,opt,name=status,proto3,enum=com.evrblk.moab.corepb.ReportStatusRequestEntry_Status" json:"status,omitempty"`
+	// Resolved from the request (or the Queue default) by the server, same as
+	// DequeueRequest's field of the same name. Meaningful only when status ==
+	// STATUS_IN_PROGRESS: heartbeatTask uses it (instead of a value stored on
+	// the task) to recompute VisibleAt.
+	KeepaliveTimeoutInSeconds int64 `protobuf:"varint,4,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ReportStatusRequestEntry) Reset() {
@@ -994,8 +1058,17 @@ func (x *ReportStatusRequestEntry) GetStatus() ReportStatusRequestEntry_Status {
 	return ReportStatusRequestEntry_STATUS_INVALID
 }
 
+func (x *ReportStatusRequestEntry) GetKeepaliveTimeoutInSeconds() int64 {
+	if x != nil {
+		return x.KeepaliveTimeoutInSeconds
+	}
+	return 0
+}
+
 type ReportStatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Same length and order as the request's entries, one-to-one.
+	Entries       []*ReportStatusResponseEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1030,6 +1103,65 @@ func (*ReportStatusResponse) Descriptor() ([]byte, []int) {
 	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{11}
 }
 
+func (x *ReportStatusResponse) GetEntries() []*ReportStatusResponseEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+type ReportStatusResponseEntry struct {
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	TaskId        *TaskId                          `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Result        ReportStatusResponseEntry_Result `protobuf:"varint,2,opt,name=result,proto3,enum=com.evrblk.moab.corepb.ReportStatusResponseEntry_Result" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportStatusResponseEntry) Reset() {
+	*x = ReportStatusResponseEntry{}
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportStatusResponseEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportStatusResponseEntry) ProtoMessage() {}
+
+func (x *ReportStatusResponseEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportStatusResponseEntry.ProtoReflect.Descriptor instead.
+func (*ReportStatusResponseEntry) Descriptor() ([]byte, []int) {
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ReportStatusResponseEntry) GetTaskId() *TaskId {
+	if x != nil {
+		return x.TaskId
+	}
+	return nil
+}
+
+func (x *ReportStatusResponseEntry) GetResult() ReportStatusResponseEntry_Result {
+	if x != nil {
+		return x.Result
+	}
+	return ReportStatusResponseEntry_RESULT_INVALID
+}
+
 type DeleteTasksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	QueueId       *QueueId               `protobuf:"bytes,1,opt,name=queue_id,json=queueId,proto3" json:"queue_id,omitempty"`
@@ -1040,7 +1172,7 @@ type DeleteTasksRequest struct {
 
 func (x *DeleteTasksRequest) Reset() {
 	*x = DeleteTasksRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[12]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1052,7 +1184,7 @@ func (x *DeleteTasksRequest) String() string {
 func (*DeleteTasksRequest) ProtoMessage() {}
 
 func (x *DeleteTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[12]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1065,7 +1197,7 @@ func (x *DeleteTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTasksRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTasksRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{12}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeleteTasksRequest) GetQueueId() *QueueId {
@@ -1090,7 +1222,7 @@ type DeleteTasksResponse struct {
 
 func (x *DeleteTasksResponse) Reset() {
 	*x = DeleteTasksResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[13]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1102,7 +1234,7 @@ func (x *DeleteTasksResponse) String() string {
 func (*DeleteTasksResponse) ProtoMessage() {}
 
 func (x *DeleteTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[13]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1115,7 +1247,7 @@ func (x *DeleteTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTasksResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTasksResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{13}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{14}
 }
 
 type RestartTasksRequest struct {
@@ -1128,7 +1260,7 @@ type RestartTasksRequest struct {
 
 func (x *RestartTasksRequest) Reset() {
 	*x = RestartTasksRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[14]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1140,7 +1272,7 @@ func (x *RestartTasksRequest) String() string {
 func (*RestartTasksRequest) ProtoMessage() {}
 
 func (x *RestartTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[14]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1153,7 +1285,7 @@ func (x *RestartTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartTasksRequest.ProtoReflect.Descriptor instead.
 func (*RestartTasksRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{14}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RestartTasksRequest) GetQueueId() *QueueId {
@@ -1185,7 +1317,7 @@ type RestartTasksRequestEntry struct {
 
 func (x *RestartTasksRequestEntry) Reset() {
 	*x = RestartTasksRequestEntry{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[15]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1329,7 @@ func (x *RestartTasksRequestEntry) String() string {
 func (*RestartTasksRequestEntry) ProtoMessage() {}
 
 func (x *RestartTasksRequestEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[15]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1342,7 @@ func (x *RestartTasksRequestEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartTasksRequestEntry.ProtoReflect.Descriptor instead.
 func (*RestartTasksRequestEntry) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{15}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RestartTasksRequestEntry) GetTaskId() uint64 {
@@ -1243,7 +1375,7 @@ type RestartTasksResponse struct {
 
 func (x *RestartTasksResponse) Reset() {
 	*x = RestartTasksResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[16]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1255,7 +1387,7 @@ func (x *RestartTasksResponse) String() string {
 func (*RestartTasksResponse) ProtoMessage() {}
 
 func (x *RestartTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[16]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1268,7 +1400,7 @@ func (x *RestartTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartTasksResponse.ProtoReflect.Descriptor instead.
 func (*RestartTasksResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{16}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RestartTasksResponse) GetEntries() []*RestartTasksResponseEntry {
@@ -1290,7 +1422,7 @@ type RestartTasksResponseEntry struct {
 
 func (x *RestartTasksResponseEntry) Reset() {
 	*x = RestartTasksResponseEntry{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[17]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1302,7 +1434,7 @@ func (x *RestartTasksResponseEntry) String() string {
 func (*RestartTasksResponseEntry) ProtoMessage() {}
 
 func (x *RestartTasksResponseEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[17]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1315,7 +1447,7 @@ func (x *RestartTasksResponseEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartTasksResponseEntry.ProtoReflect.Descriptor instead.
 func (*RestartTasksResponseEntry) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{17}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RestartTasksResponseEntry) GetTaskId() uint64 {
@@ -1348,7 +1480,7 @@ type GetStatisticsRequest struct {
 
 func (x *GetStatisticsRequest) Reset() {
 	*x = GetStatisticsRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[18]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1492,7 @@ func (x *GetStatisticsRequest) String() string {
 func (*GetStatisticsRequest) ProtoMessage() {}
 
 func (x *GetStatisticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[18]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1505,7 @@ func (x *GetStatisticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatisticsRequest.ProtoReflect.Descriptor instead.
 func (*GetStatisticsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{18}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetStatisticsRequest) GetQueueId() *QueueId {
@@ -1402,7 +1534,7 @@ type GetStatisticsResponse struct {
 
 func (x *GetStatisticsResponse) Reset() {
 	*x = GetStatisticsResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[19]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1414,7 +1546,7 @@ func (x *GetStatisticsResponse) String() string {
 func (*GetStatisticsResponse) ProtoMessage() {}
 
 func (x *GetStatisticsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[19]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1427,7 +1559,7 @@ func (x *GetStatisticsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatisticsResponse.ProtoReflect.Descriptor instead.
 func (*GetStatisticsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{19}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetStatisticsResponse) GetEnqueuedTasksCount() int64 {
@@ -1488,7 +1620,7 @@ type GetTaskRequest struct {
 
 func (x *GetTaskRequest) Reset() {
 	*x = GetTaskRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[20]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1500,7 +1632,7 @@ func (x *GetTaskRequest) String() string {
 func (*GetTaskRequest) ProtoMessage() {}
 
 func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[20]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1513,7 +1645,7 @@ func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{20}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetTaskRequest) GetTaskId() *TaskId {
@@ -1532,7 +1664,7 @@ type GetTaskResponse struct {
 
 func (x *GetTaskResponse) Reset() {
 	*x = GetTaskResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[21]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1544,7 +1676,7 @@ func (x *GetTaskResponse) String() string {
 func (*GetTaskResponse) ProtoMessage() {}
 
 func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[21]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1557,7 +1689,7 @@ func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{21}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetTaskResponse) GetTask() *Task {
@@ -1582,7 +1714,7 @@ type PurgeQueueRequest struct {
 
 func (x *PurgeQueueRequest) Reset() {
 	*x = PurgeQueueRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[22]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1594,7 +1726,7 @@ func (x *PurgeQueueRequest) String() string {
 func (*PurgeQueueRequest) ProtoMessage() {}
 
 func (x *PurgeQueueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[22]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1607,7 +1739,7 @@ func (x *PurgeQueueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PurgeQueueRequest.ProtoReflect.Descriptor instead.
 func (*PurgeQueueRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{22}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *PurgeQueueRequest) GetQueueId() *QueueId {
@@ -1625,7 +1757,7 @@ type PurgeQueueResponse struct {
 
 func (x *PurgeQueueResponse) Reset() {
 	*x = PurgeQueueResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[23]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1637,7 +1769,7 @@ func (x *PurgeQueueResponse) String() string {
 func (*PurgeQueueResponse) ProtoMessage() {}
 
 func (x *PurgeQueueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[23]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1650,7 +1782,7 @@ func (x *PurgeQueueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PurgeQueueResponse.ProtoReflect.Descriptor instead.
 func (*PurgeQueueResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{23}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{24}
 }
 
 // PurgeQueueGarbageCollectionRecord marks a purged queue id's tasks for
@@ -1667,7 +1799,7 @@ type PurgeQueueGarbageCollectionRecord struct {
 
 func (x *PurgeQueueGarbageCollectionRecord) Reset() {
 	*x = PurgeQueueGarbageCollectionRecord{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[24]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1679,7 +1811,7 @@ func (x *PurgeQueueGarbageCollectionRecord) String() string {
 func (*PurgeQueueGarbageCollectionRecord) ProtoMessage() {}
 
 func (x *PurgeQueueGarbageCollectionRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[24]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1692,7 +1824,7 @@ func (x *PurgeQueueGarbageCollectionRecord) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use PurgeQueueGarbageCollectionRecord.ProtoReflect.Descriptor instead.
 func (*PurgeQueueGarbageCollectionRecord) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{24}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PurgeQueueGarbageCollectionRecord) GetQueueId() *QueueId {
@@ -1716,7 +1848,7 @@ type RunPurgeQueueGarbageCollectionRequest struct {
 
 func (x *RunPurgeQueueGarbageCollectionRequest) Reset() {
 	*x = RunPurgeQueueGarbageCollectionRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[25]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1728,7 +1860,7 @@ func (x *RunPurgeQueueGarbageCollectionRequest) String() string {
 func (*RunPurgeQueueGarbageCollectionRequest) ProtoMessage() {}
 
 func (x *RunPurgeQueueGarbageCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[25]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1741,7 +1873,7 @@ func (x *RunPurgeQueueGarbageCollectionRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RunPurgeQueueGarbageCollectionRequest.ProtoReflect.Descriptor instead.
 func (*RunPurgeQueueGarbageCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{25}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *RunPurgeQueueGarbageCollectionRequest) GetGcRecordsPageSize() int32 {
@@ -1773,7 +1905,7 @@ type RunPurgeQueueGarbageCollectionResponse struct {
 
 func (x *RunPurgeQueueGarbageCollectionResponse) Reset() {
 	*x = RunPurgeQueueGarbageCollectionResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[26]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1785,7 +1917,7 @@ func (x *RunPurgeQueueGarbageCollectionResponse) String() string {
 func (*RunPurgeQueueGarbageCollectionResponse) ProtoMessage() {}
 
 func (x *RunPurgeQueueGarbageCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[26]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1798,7 +1930,7 @@ func (x *RunPurgeQueueGarbageCollectionResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use RunPurgeQueueGarbageCollectionResponse.ProtoReflect.Descriptor instead.
 func (*RunPurgeQueueGarbageCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{26}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{27}
 }
 
 type ListTasksRequest struct {
@@ -1817,7 +1949,7 @@ type ListTasksRequest struct {
 
 func (x *ListTasksRequest) Reset() {
 	*x = ListTasksRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[27]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1829,7 +1961,7 @@ func (x *ListTasksRequest) String() string {
 func (*ListTasksRequest) ProtoMessage() {}
 
 func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[27]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1842,7 +1974,7 @@ func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListTasksRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{27}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListTasksRequest) GetQueueId() *QueueId {
@@ -1884,7 +2016,7 @@ type ListTasksResponse struct {
 
 func (x *ListTasksResponse) Reset() {
 	*x = ListTasksResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[28]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1896,7 +2028,7 @@ func (x *ListTasksResponse) String() string {
 func (*ListTasksResponse) ProtoMessage() {}
 
 func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[28]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1909,7 +2041,7 @@ func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListTasksResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{28}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListTasksResponse) GetTasks() []*Task {
@@ -1943,7 +2075,7 @@ type RunTasksGarbageCollectionRequest struct {
 
 func (x *RunTasksGarbageCollectionRequest) Reset() {
 	*x = RunTasksGarbageCollectionRequest{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[29]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1955,7 +2087,7 @@ func (x *RunTasksGarbageCollectionRequest) String() string {
 func (*RunTasksGarbageCollectionRequest) ProtoMessage() {}
 
 func (x *RunTasksGarbageCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[29]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1968,7 +2100,7 @@ func (x *RunTasksGarbageCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunTasksGarbageCollectionRequest.ProtoReflect.Descriptor instead.
 func (*RunTasksGarbageCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{29}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *RunTasksGarbageCollectionRequest) GetMaxVisitedTasks() int32 {
@@ -1993,7 +2125,7 @@ type RunTasksGarbageCollectionResponse struct {
 
 func (x *RunTasksGarbageCollectionResponse) Reset() {
 	*x = RunTasksGarbageCollectionResponse{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[30]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2005,7 +2137,7 @@ func (x *RunTasksGarbageCollectionResponse) String() string {
 func (*RunTasksGarbageCollectionResponse) ProtoMessage() {}
 
 func (x *RunTasksGarbageCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[30]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2018,7 +2150,7 @@ func (x *RunTasksGarbageCollectionResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RunTasksGarbageCollectionResponse.ProtoReflect.Descriptor instead.
 func (*RunTasksGarbageCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{30}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{31}
 }
 
 type TasksCounter struct {
@@ -2038,7 +2170,7 @@ type TasksCounter struct {
 
 func (x *TasksCounter) Reset() {
 	*x = TasksCounter{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[31]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2050,7 +2182,7 @@ func (x *TasksCounter) String() string {
 func (*TasksCounter) ProtoMessage() {}
 
 func (x *TasksCounter) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[31]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2063,7 +2195,7 @@ func (x *TasksCounter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TasksCounter.ProtoReflect.Descriptor instead.
 func (*TasksCounter) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{31}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *TasksCounter) GetEnqueuedTasksCount() int64 {
@@ -2112,7 +2244,7 @@ type QueueState struct {
 
 func (x *QueueState) Reset() {
 	*x = QueueState{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[32]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2124,7 +2256,7 @@ func (x *QueueState) String() string {
 func (*QueueState) ProtoMessage() {}
 
 func (x *QueueState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[32]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2137,7 +2269,7 @@ func (x *QueueState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueState.ProtoReflect.Descriptor instead.
 func (*QueueState) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{32}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *QueueState) GetTaskIdSequence() uint64 {
@@ -2171,7 +2303,7 @@ type RateLimiterState struct {
 
 func (x *RateLimiterState) Reset() {
 	*x = RateLimiterState{}
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[33]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2183,7 +2315,7 @@ func (x *RateLimiterState) String() string {
 func (*RateLimiterState) ProtoMessage() {}
 
 func (x *RateLimiterState) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_corepb_tasks_proto_msgTypes[33]
+	mi := &file_pkg_corepb_tasks_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2196,7 +2328,7 @@ func (x *RateLimiterState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateLimiterState.ProtoReflect.Descriptor instead.
 func (*RateLimiterState) Descriptor() ([]byte, []int) {
-	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{33}
+	return file_pkg_corepb_tasks_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *RateLimiterState) GetTokens() int64 {
@@ -2217,7 +2349,7 @@ var File_pkg_corepb_tasks_proto protoreflect.FileDescriptor
 
 const file_pkg_corepb_tasks_proto_rawDesc = "" +
 	"\n" +
-	"\x16pkg/corepb/tasks.proto\x12\x16com.evrblk.moab.corepb\x1a\x17pkg/corepb/common.proto\x1a\x17pkg/corepb/queues.proto\"\xb5\x04\n" +
+	"\x16pkg/corepb/tasks.proto\x12\x16com.evrblk.moab.corepb\x1a\x17pkg/corepb/common.proto\x1a\x17pkg/corepb/queues.proto\"\xf4\x03\n" +
 	"\x04Task\x12.\n" +
 	"\x02id\x18\x01 \x01(\v2\x1e.com.evrblk.moab.corepb.TaskIdR\x02id\x12\x18\n" +
 	"\apayload\x18\x02 \x01(\fR\apayload\x12\x1d\n" +
@@ -2235,10 +2367,9 @@ const file_pkg_corepb_tasks_proto_rawDesc = "" +
 	"\x0elast_failed_at\x18\n" +
 	" \x01(\x10R\flastFailedAt\x12\x1d\n" +
 	"\n" +
-	"debug_info\x18\v \x01(\fR\tdebugInfo\x12?\n" +
-	"\x1ckeepalive_timeout_in_seconds\x18\f \x01(\x03R\x19keepaliveTimeoutInSeconds\x12L\n" +
-	"\x0eretry_strategy\x18\r \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1b\n" +
-	"\tthread_id\x18\x0e \x01(\tR\bthreadId\"[\n" +
+	"debug_info\x18\v \x01(\fR\tdebugInfo\x12L\n" +
+	"\x0eretry_strategy\x18\f \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1b\n" +
+	"\tthread_id\x18\r \x01(\tR\bthreadId\"[\n" +
 	"\x06TaskId\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\x06R\taccountId\x12\x19\n" +
@@ -2257,46 +2388,57 @@ const file_pkg_corepb_tasks_proto_rawDesc = "" +
 	"visible_at\x18\x04 \x01(\x10R\tvisibleAt\"\x93\x01\n" +
 	"\x0eEnqueueRequest\x12:\n" +
 	"\bqueue_id\x18\x01 \x01(\v2\x1f.com.evrblk.moab.corepb.QueueIdR\aqueueId\x12E\n" +
-	"\aentries\x18\x02 \x03(\v2+.com.evrblk.moab.corepb.EnqueueRequestEntryR\aentries\"\xe5\x04\n" +
+	"\aentries\x18\x02 \x03(\v2+.com.evrblk.moab.corepb.EnqueueRequestEntryR\aentries\"\xa4\x04\n" +
 	"\x13EnqueueRequestEntry\x12\x18\n" +
 	"\apayload\x18\x01 \x01(\fR\apayload\x12!\n" +
 	"\fscheduled_at\x18\x02 \x01(\x10R\vscheduledAt\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\x10R\texpiresAt\x12\x1d\n" +
 	"\n" +
-	"dedupe_key\x18\x04 \x01(\tR\tdedupeKey\x12?\n" +
-	"\x1ckeepalive_timeout_in_seconds\x18\x05 \x01(\x03R\x19keepaliveTimeoutInSeconds\x12L\n" +
-	"\x0eretry_strategy\x18\x06 \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12v\n" +
-	"\x16overwrite_on_duplicate\x18\a \x03(\x0e2@.com.evrblk.moab.corepb.EnqueueRequestEntry.OverwriteOnDuplicateR\x14overwriteOnDuplicate\x12\x1b\n" +
-	"\tthread_id\x18\b \x01(\tR\bthreadId\"\xae\x01\n" +
+	"dedupe_key\x18\x04 \x01(\tR\tdedupeKey\x12L\n" +
+	"\x0eretry_strategy\x18\x05 \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12v\n" +
+	"\x16overwrite_on_duplicate\x18\x06 \x03(\x0e2@.com.evrblk.moab.corepb.EnqueueRequestEntry.OverwriteOnDuplicateR\x14overwriteOnDuplicate\x12\x1b\n" +
+	"\tthread_id\x18\a \x01(\tR\bthreadId\"\xae\x01\n" +
 	"\x14OverwriteOnDuplicate\x12\"\n" +
 	"\x1eOVERWRITE_ON_DUPLICATE_INVALID\x10\x00\x12\"\n" +
 	"\x1eOVERWRITE_ON_DUPLICATE_PAYLOAD\x10\x01\x12'\n" +
 	"#OVERWRITE_ON_DUPLICATE_SCHEDULED_AT\x10\x02\x12%\n" +
 	"!OVERWRITE_ON_DUPLICATE_EXPIRES_AT\x10\x03\"E\n" +
 	"\x0fEnqueueResponse\x122\n" +
-	"\x05tasks\x18\x01 \x03(\v2\x1c.com.evrblk.moab.corepb.TaskR\x05tasks\"\xb3\x02\n" +
+	"\x05tasks\x18\x01 \x03(\v2\x1c.com.evrblk.moab.corepb.TaskR\x05tasks\"\xf4\x02\n" +
 	"\x0eDequeueRequest\x12:\n" +
 	"\bqueue_id\x18\x01 \x01(\v2\x1f.com.evrblk.moab.corepb.QueueIdR\aqueueId\x12X\n" +
 	"\x12dequeuing_settings\x18\x02 \x01(\v2).com.evrblk.moab.corepb.DequeuingSettingsR\x11dequeuingSettings\x12#\n" +
 	"\rdequeue_limit\x18\x03 \x01(\x05R\fdequeueLimit\x12f\n" +
-	"\x18dead_letter_queue_config\x18\x04 \x01(\v2-.com.evrblk.moab.corepb.DeadLetterQueueConfigR\x15deadLetterQueueConfig\"E\n" +
+	"\x18dead_letter_queue_config\x18\x04 \x01(\v2-.com.evrblk.moab.corepb.DeadLetterQueueConfigR\x15deadLetterQueueConfig\x12?\n" +
+	"\x1ckeepalive_timeout_in_seconds\x18\x05 \x01(\x03R\x19keepaliveTimeoutInSeconds\"E\n" +
 	"\x0fDequeueResponse\x122\n" +
 	"\x05tasks\x18\x01 \x03(\v2\x1c.com.evrblk.moab.corepb.TaskR\x05tasks\"\x85\x02\n" +
 	"\x13ReportStatusRequest\x12:\n" +
 	"\bqueue_id\x18\x01 \x01(\v2\x1f.com.evrblk.moab.corepb.QueueIdR\aqueueId\x12J\n" +
 	"\aentries\x18\x02 \x03(\v20.com.evrblk.moab.corepb.ReportStatusRequestEntryR\aentries\x12f\n" +
-	"\x18dead_letter_queue_config\x18\x03 \x01(\v2-.com.evrblk.moab.corepb.DeadLetterQueueConfigR\x15deadLetterQueueConfig\"\x9d\x02\n" +
+	"\x18dead_letter_queue_config\x18\x03 \x01(\v2-.com.evrblk.moab.corepb.DeadLetterQueueConfigR\x15deadLetterQueueConfig\"\xde\x02\n" +
 	"\x18ReportStatusRequestEntry\x127\n" +
 	"\atask_id\x18\x01 \x01(\v2\x1e.com.evrblk.moab.corepb.TaskIdR\x06taskId\x12\x18\n" +
 	"\aattempt\x18\x02 \x01(\x05R\aattempt\x12O\n" +
-	"\x06status\x18\x03 \x01(\x0e27.com.evrblk.moab.corepb.ReportStatusRequestEntry.StatusR\x06status\"]\n" +
+	"\x06status\x18\x03 \x01(\x0e27.com.evrblk.moab.corepb.ReportStatusRequestEntry.StatusR\x06status\x12?\n" +
+	"\x1ckeepalive_timeout_in_seconds\x18\x04 \x01(\x03R\x19keepaliveTimeoutInSeconds\"]\n" +
 	"\x06Status\x12\x12\n" +
 	"\x0eSTATUS_INVALID\x10\x00\x12\x14\n" +
 	"\x10STATUS_SUCCEEDED\x10\x01\x12\x16\n" +
 	"\x12STATUS_IN_PROGRESS\x10\x02\x12\x11\n" +
-	"\rSTATUS_FAILED\x10\x03\"\x16\n" +
-	"\x14ReportStatusResponse\"k\n" +
+	"\rSTATUS_FAILED\x10\x03\"c\n" +
+	"\x14ReportStatusResponse\x12K\n" +
+	"\aentries\x18\x01 \x03(\v21.com.evrblk.moab.corepb.ReportStatusResponseEntryR\aentries\"\x9f\x02\n" +
+	"\x19ReportStatusResponseEntry\x127\n" +
+	"\atask_id\x18\x01 \x01(\v2\x1e.com.evrblk.moab.corepb.TaskIdR\x06taskId\x12P\n" +
+	"\x06result\x18\x02 \x01(\x0e28.com.evrblk.moab.corepb.ReportStatusResponseEntry.ResultR\x06result\"w\n" +
+	"\x06Result\x12\x12\n" +
+	"\x0eRESULT_INVALID\x10\x00\x12\r\n" +
+	"\tRESULT_OK\x10\x01\x12\x14\n" +
+	"\x10RESULT_NOT_FOUND\x10\x02\x12\x1a\n" +
+	"\x16RESULT_NOT_IN_PROGRESS\x10\x03\x12\x18\n" +
+	"\x14RESULT_STALE_ATTEMPT\x10\x04\"k\n" +
 	"\x12DeleteTasksRequest\x12:\n" +
 	"\bqueue_id\x18\x01 \x01(\v2\x1f.com.evrblk.moab.corepb.QueueIdR\aqueueId\x12\x19\n" +
 	"\btask_ids\x18\x02 \x03(\x06R\ataskIds\"\x15\n" +
@@ -2390,95 +2532,100 @@ func file_pkg_corepb_tasks_proto_rawDescGZIP() []byte {
 	return file_pkg_corepb_tasks_proto_rawDescData
 }
 
-var file_pkg_corepb_tasks_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_pkg_corepb_tasks_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_pkg_corepb_tasks_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_pkg_corepb_tasks_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_pkg_corepb_tasks_proto_goTypes = []any{
 	(TaskState)(0), // 0: com.evrblk.moab.corepb.TaskState
 	(EnqueueRequestEntry_OverwriteOnDuplicate)(0),  // 1: com.evrblk.moab.corepb.EnqueueRequestEntry.OverwriteOnDuplicate
 	(ReportStatusRequestEntry_Status)(0),           // 2: com.evrblk.moab.corepb.ReportStatusRequestEntry.Status
-	(RestartTasksResponseEntry_Result)(0),          // 3: com.evrblk.moab.corepb.RestartTasksResponseEntry.Result
-	(*Task)(nil),                                   // 4: com.evrblk.moab.corepb.Task
-	(*TaskId)(nil),                                 // 5: com.evrblk.moab.corepb.TaskId
-	(*ExpirationIndexRecord)(nil),                  // 6: com.evrblk.moab.corepb.ExpirationIndexRecord
-	(*Thread)(nil),                                 // 7: com.evrblk.moab.corepb.Thread
-	(*EnqueueRequest)(nil),                         // 8: com.evrblk.moab.corepb.EnqueueRequest
-	(*EnqueueRequestEntry)(nil),                    // 9: com.evrblk.moab.corepb.EnqueueRequestEntry
-	(*EnqueueResponse)(nil),                        // 10: com.evrblk.moab.corepb.EnqueueResponse
-	(*DequeueRequest)(nil),                         // 11: com.evrblk.moab.corepb.DequeueRequest
-	(*DequeueResponse)(nil),                        // 12: com.evrblk.moab.corepb.DequeueResponse
-	(*ReportStatusRequest)(nil),                    // 13: com.evrblk.moab.corepb.ReportStatusRequest
-	(*ReportStatusRequestEntry)(nil),               // 14: com.evrblk.moab.corepb.ReportStatusRequestEntry
-	(*ReportStatusResponse)(nil),                   // 15: com.evrblk.moab.corepb.ReportStatusResponse
-	(*DeleteTasksRequest)(nil),                     // 16: com.evrblk.moab.corepb.DeleteTasksRequest
-	(*DeleteTasksResponse)(nil),                    // 17: com.evrblk.moab.corepb.DeleteTasksResponse
-	(*RestartTasksRequest)(nil),                    // 18: com.evrblk.moab.corepb.RestartTasksRequest
-	(*RestartTasksRequestEntry)(nil),               // 19: com.evrblk.moab.corepb.RestartTasksRequestEntry
-	(*RestartTasksResponse)(nil),                   // 20: com.evrblk.moab.corepb.RestartTasksResponse
-	(*RestartTasksResponseEntry)(nil),              // 21: com.evrblk.moab.corepb.RestartTasksResponseEntry
-	(*GetStatisticsRequest)(nil),                   // 22: com.evrblk.moab.corepb.GetStatisticsRequest
-	(*GetStatisticsResponse)(nil),                  // 23: com.evrblk.moab.corepb.GetStatisticsResponse
-	(*GetTaskRequest)(nil),                         // 24: com.evrblk.moab.corepb.GetTaskRequest
-	(*GetTaskResponse)(nil),                        // 25: com.evrblk.moab.corepb.GetTaskResponse
-	(*PurgeQueueRequest)(nil),                      // 26: com.evrblk.moab.corepb.PurgeQueueRequest
-	(*PurgeQueueResponse)(nil),                     // 27: com.evrblk.moab.corepb.PurgeQueueResponse
-	(*PurgeQueueGarbageCollectionRecord)(nil),      // 28: com.evrblk.moab.corepb.PurgeQueueGarbageCollectionRecord
-	(*RunPurgeQueueGarbageCollectionRequest)(nil),  // 29: com.evrblk.moab.corepb.RunPurgeQueueGarbageCollectionRequest
-	(*RunPurgeQueueGarbageCollectionResponse)(nil), // 30: com.evrblk.moab.corepb.RunPurgeQueueGarbageCollectionResponse
-	(*ListTasksRequest)(nil),                       // 31: com.evrblk.moab.corepb.ListTasksRequest
-	(*ListTasksResponse)(nil),                      // 32: com.evrblk.moab.corepb.ListTasksResponse
-	(*RunTasksGarbageCollectionRequest)(nil),       // 33: com.evrblk.moab.corepb.RunTasksGarbageCollectionRequest
-	(*RunTasksGarbageCollectionResponse)(nil),      // 34: com.evrblk.moab.corepb.RunTasksGarbageCollectionResponse
-	(*TasksCounter)(nil),                           // 35: com.evrblk.moab.corepb.TasksCounter
-	(*QueueState)(nil),                             // 36: com.evrblk.moab.corepb.QueueState
-	(*RateLimiterState)(nil),                       // 37: com.evrblk.moab.corepb.RateLimiterState
-	(*RetryStrategy)(nil),                          // 38: com.evrblk.moab.corepb.RetryStrategy
-	(*QueueId)(nil),                                // 39: com.evrblk.moab.corepb.QueueId
-	(*DequeuingSettings)(nil),                      // 40: com.evrblk.moab.corepb.DequeuingSettings
-	(*DeadLetterQueueConfig)(nil),                  // 41: com.evrblk.moab.corepb.DeadLetterQueueConfig
-	(*PaginationToken)(nil),                        // 42: com.evrblk.moab.corepb.PaginationToken
+	(ReportStatusResponseEntry_Result)(0),          // 3: com.evrblk.moab.corepb.ReportStatusResponseEntry.Result
+	(RestartTasksResponseEntry_Result)(0),          // 4: com.evrblk.moab.corepb.RestartTasksResponseEntry.Result
+	(*Task)(nil),                                   // 5: com.evrblk.moab.corepb.Task
+	(*TaskId)(nil),                                 // 6: com.evrblk.moab.corepb.TaskId
+	(*ExpirationIndexRecord)(nil),                  // 7: com.evrblk.moab.corepb.ExpirationIndexRecord
+	(*Thread)(nil),                                 // 8: com.evrblk.moab.corepb.Thread
+	(*EnqueueRequest)(nil),                         // 9: com.evrblk.moab.corepb.EnqueueRequest
+	(*EnqueueRequestEntry)(nil),                    // 10: com.evrblk.moab.corepb.EnqueueRequestEntry
+	(*EnqueueResponse)(nil),                        // 11: com.evrblk.moab.corepb.EnqueueResponse
+	(*DequeueRequest)(nil),                         // 12: com.evrblk.moab.corepb.DequeueRequest
+	(*DequeueResponse)(nil),                        // 13: com.evrblk.moab.corepb.DequeueResponse
+	(*ReportStatusRequest)(nil),                    // 14: com.evrblk.moab.corepb.ReportStatusRequest
+	(*ReportStatusRequestEntry)(nil),               // 15: com.evrblk.moab.corepb.ReportStatusRequestEntry
+	(*ReportStatusResponse)(nil),                   // 16: com.evrblk.moab.corepb.ReportStatusResponse
+	(*ReportStatusResponseEntry)(nil),              // 17: com.evrblk.moab.corepb.ReportStatusResponseEntry
+	(*DeleteTasksRequest)(nil),                     // 18: com.evrblk.moab.corepb.DeleteTasksRequest
+	(*DeleteTasksResponse)(nil),                    // 19: com.evrblk.moab.corepb.DeleteTasksResponse
+	(*RestartTasksRequest)(nil),                    // 20: com.evrblk.moab.corepb.RestartTasksRequest
+	(*RestartTasksRequestEntry)(nil),               // 21: com.evrblk.moab.corepb.RestartTasksRequestEntry
+	(*RestartTasksResponse)(nil),                   // 22: com.evrblk.moab.corepb.RestartTasksResponse
+	(*RestartTasksResponseEntry)(nil),              // 23: com.evrblk.moab.corepb.RestartTasksResponseEntry
+	(*GetStatisticsRequest)(nil),                   // 24: com.evrblk.moab.corepb.GetStatisticsRequest
+	(*GetStatisticsResponse)(nil),                  // 25: com.evrblk.moab.corepb.GetStatisticsResponse
+	(*GetTaskRequest)(nil),                         // 26: com.evrblk.moab.corepb.GetTaskRequest
+	(*GetTaskResponse)(nil),                        // 27: com.evrblk.moab.corepb.GetTaskResponse
+	(*PurgeQueueRequest)(nil),                      // 28: com.evrblk.moab.corepb.PurgeQueueRequest
+	(*PurgeQueueResponse)(nil),                     // 29: com.evrblk.moab.corepb.PurgeQueueResponse
+	(*PurgeQueueGarbageCollectionRecord)(nil),      // 30: com.evrblk.moab.corepb.PurgeQueueGarbageCollectionRecord
+	(*RunPurgeQueueGarbageCollectionRequest)(nil),  // 31: com.evrblk.moab.corepb.RunPurgeQueueGarbageCollectionRequest
+	(*RunPurgeQueueGarbageCollectionResponse)(nil), // 32: com.evrblk.moab.corepb.RunPurgeQueueGarbageCollectionResponse
+	(*ListTasksRequest)(nil),                       // 33: com.evrblk.moab.corepb.ListTasksRequest
+	(*ListTasksResponse)(nil),                      // 34: com.evrblk.moab.corepb.ListTasksResponse
+	(*RunTasksGarbageCollectionRequest)(nil),       // 35: com.evrblk.moab.corepb.RunTasksGarbageCollectionRequest
+	(*RunTasksGarbageCollectionResponse)(nil),      // 36: com.evrblk.moab.corepb.RunTasksGarbageCollectionResponse
+	(*TasksCounter)(nil),                           // 37: com.evrblk.moab.corepb.TasksCounter
+	(*QueueState)(nil),                             // 38: com.evrblk.moab.corepb.QueueState
+	(*RateLimiterState)(nil),                       // 39: com.evrblk.moab.corepb.RateLimiterState
+	(*RetryStrategy)(nil),                          // 40: com.evrblk.moab.corepb.RetryStrategy
+	(*QueueId)(nil),                                // 41: com.evrblk.moab.corepb.QueueId
+	(*DequeuingSettings)(nil),                      // 42: com.evrblk.moab.corepb.DequeuingSettings
+	(*DeadLetterQueueConfig)(nil),                  // 43: com.evrblk.moab.corepb.DeadLetterQueueConfig
+	(*PaginationToken)(nil),                        // 44: com.evrblk.moab.corepb.PaginationToken
 }
 var file_pkg_corepb_tasks_proto_depIdxs = []int32{
-	5,  // 0: com.evrblk.moab.corepb.Task.id:type_name -> com.evrblk.moab.corepb.TaskId
+	6,  // 0: com.evrblk.moab.corepb.Task.id:type_name -> com.evrblk.moab.corepb.TaskId
 	0,  // 1: com.evrblk.moab.corepb.Task.state:type_name -> com.evrblk.moab.corepb.TaskState
-	38, // 2: com.evrblk.moab.corepb.Task.retry_strategy:type_name -> com.evrblk.moab.corepb.RetryStrategy
-	5,  // 3: com.evrblk.moab.corepb.ExpirationIndexRecord.task_id:type_name -> com.evrblk.moab.corepb.TaskId
-	5,  // 4: com.evrblk.moab.corepb.Thread.head_task_id:type_name -> com.evrblk.moab.corepb.TaskId
-	39, // 5: com.evrblk.moab.corepb.EnqueueRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	9,  // 6: com.evrblk.moab.corepb.EnqueueRequest.entries:type_name -> com.evrblk.moab.corepb.EnqueueRequestEntry
-	38, // 7: com.evrblk.moab.corepb.EnqueueRequestEntry.retry_strategy:type_name -> com.evrblk.moab.corepb.RetryStrategy
+	40, // 2: com.evrblk.moab.corepb.Task.retry_strategy:type_name -> com.evrblk.moab.corepb.RetryStrategy
+	6,  // 3: com.evrblk.moab.corepb.ExpirationIndexRecord.task_id:type_name -> com.evrblk.moab.corepb.TaskId
+	6,  // 4: com.evrblk.moab.corepb.Thread.head_task_id:type_name -> com.evrblk.moab.corepb.TaskId
+	41, // 5: com.evrblk.moab.corepb.EnqueueRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	10, // 6: com.evrblk.moab.corepb.EnqueueRequest.entries:type_name -> com.evrblk.moab.corepb.EnqueueRequestEntry
+	40, // 7: com.evrblk.moab.corepb.EnqueueRequestEntry.retry_strategy:type_name -> com.evrblk.moab.corepb.RetryStrategy
 	1,  // 8: com.evrblk.moab.corepb.EnqueueRequestEntry.overwrite_on_duplicate:type_name -> com.evrblk.moab.corepb.EnqueueRequestEntry.OverwriteOnDuplicate
-	4,  // 9: com.evrblk.moab.corepb.EnqueueResponse.tasks:type_name -> com.evrblk.moab.corepb.Task
-	39, // 10: com.evrblk.moab.corepb.DequeueRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	40, // 11: com.evrblk.moab.corepb.DequeueRequest.dequeuing_settings:type_name -> com.evrblk.moab.corepb.DequeuingSettings
-	41, // 12: com.evrblk.moab.corepb.DequeueRequest.dead_letter_queue_config:type_name -> com.evrblk.moab.corepb.DeadLetterQueueConfig
-	4,  // 13: com.evrblk.moab.corepb.DequeueResponse.tasks:type_name -> com.evrblk.moab.corepb.Task
-	39, // 14: com.evrblk.moab.corepb.ReportStatusRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	14, // 15: com.evrblk.moab.corepb.ReportStatusRequest.entries:type_name -> com.evrblk.moab.corepb.ReportStatusRequestEntry
-	41, // 16: com.evrblk.moab.corepb.ReportStatusRequest.dead_letter_queue_config:type_name -> com.evrblk.moab.corepb.DeadLetterQueueConfig
-	5,  // 17: com.evrblk.moab.corepb.ReportStatusRequestEntry.task_id:type_name -> com.evrblk.moab.corepb.TaskId
+	5,  // 9: com.evrblk.moab.corepb.EnqueueResponse.tasks:type_name -> com.evrblk.moab.corepb.Task
+	41, // 10: com.evrblk.moab.corepb.DequeueRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	42, // 11: com.evrblk.moab.corepb.DequeueRequest.dequeuing_settings:type_name -> com.evrblk.moab.corepb.DequeuingSettings
+	43, // 12: com.evrblk.moab.corepb.DequeueRequest.dead_letter_queue_config:type_name -> com.evrblk.moab.corepb.DeadLetterQueueConfig
+	5,  // 13: com.evrblk.moab.corepb.DequeueResponse.tasks:type_name -> com.evrblk.moab.corepb.Task
+	41, // 14: com.evrblk.moab.corepb.ReportStatusRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	15, // 15: com.evrblk.moab.corepb.ReportStatusRequest.entries:type_name -> com.evrblk.moab.corepb.ReportStatusRequestEntry
+	43, // 16: com.evrblk.moab.corepb.ReportStatusRequest.dead_letter_queue_config:type_name -> com.evrblk.moab.corepb.DeadLetterQueueConfig
+	6,  // 17: com.evrblk.moab.corepb.ReportStatusRequestEntry.task_id:type_name -> com.evrblk.moab.corepb.TaskId
 	2,  // 18: com.evrblk.moab.corepb.ReportStatusRequestEntry.status:type_name -> com.evrblk.moab.corepb.ReportStatusRequestEntry.Status
-	39, // 19: com.evrblk.moab.corepb.DeleteTasksRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	39, // 20: com.evrblk.moab.corepb.RestartTasksRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	19, // 21: com.evrblk.moab.corepb.RestartTasksRequest.entries:type_name -> com.evrblk.moab.corepb.RestartTasksRequestEntry
-	21, // 22: com.evrblk.moab.corepb.RestartTasksResponse.entries:type_name -> com.evrblk.moab.corepb.RestartTasksResponseEntry
-	3,  // 23: com.evrblk.moab.corepb.RestartTasksResponseEntry.result:type_name -> com.evrblk.moab.corepb.RestartTasksResponseEntry.Result
-	4,  // 24: com.evrblk.moab.corepb.RestartTasksResponseEntry.task:type_name -> com.evrblk.moab.corepb.Task
-	39, // 25: com.evrblk.moab.corepb.GetStatisticsRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	5,  // 26: com.evrblk.moab.corepb.GetTaskRequest.task_id:type_name -> com.evrblk.moab.corepb.TaskId
-	4,  // 27: com.evrblk.moab.corepb.GetTaskResponse.task:type_name -> com.evrblk.moab.corepb.Task
-	39, // 28: com.evrblk.moab.corepb.PurgeQueueRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	39, // 29: com.evrblk.moab.corepb.PurgeQueueGarbageCollectionRecord.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	39, // 30: com.evrblk.moab.corepb.ListTasksRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
-	42, // 31: com.evrblk.moab.corepb.ListTasksRequest.pagination_token:type_name -> com.evrblk.moab.corepb.PaginationToken
-	0,  // 32: com.evrblk.moab.corepb.ListTasksRequest.state:type_name -> com.evrblk.moab.corepb.TaskState
-	4,  // 33: com.evrblk.moab.corepb.ListTasksResponse.tasks:type_name -> com.evrblk.moab.corepb.Task
-	42, // 34: com.evrblk.moab.corepb.ListTasksResponse.next_pagination_token:type_name -> com.evrblk.moab.corepb.PaginationToken
-	42, // 35: com.evrblk.moab.corepb.ListTasksResponse.previous_pagination_token:type_name -> com.evrblk.moab.corepb.PaginationToken
-	36, // [36:36] is the sub-list for method output_type
-	36, // [36:36] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	17, // 19: com.evrblk.moab.corepb.ReportStatusResponse.entries:type_name -> com.evrblk.moab.corepb.ReportStatusResponseEntry
+	6,  // 20: com.evrblk.moab.corepb.ReportStatusResponseEntry.task_id:type_name -> com.evrblk.moab.corepb.TaskId
+	3,  // 21: com.evrblk.moab.corepb.ReportStatusResponseEntry.result:type_name -> com.evrblk.moab.corepb.ReportStatusResponseEntry.Result
+	41, // 22: com.evrblk.moab.corepb.DeleteTasksRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	41, // 23: com.evrblk.moab.corepb.RestartTasksRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	21, // 24: com.evrblk.moab.corepb.RestartTasksRequest.entries:type_name -> com.evrblk.moab.corepb.RestartTasksRequestEntry
+	23, // 25: com.evrblk.moab.corepb.RestartTasksResponse.entries:type_name -> com.evrblk.moab.corepb.RestartTasksResponseEntry
+	4,  // 26: com.evrblk.moab.corepb.RestartTasksResponseEntry.result:type_name -> com.evrblk.moab.corepb.RestartTasksResponseEntry.Result
+	5,  // 27: com.evrblk.moab.corepb.RestartTasksResponseEntry.task:type_name -> com.evrblk.moab.corepb.Task
+	41, // 28: com.evrblk.moab.corepb.GetStatisticsRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	6,  // 29: com.evrblk.moab.corepb.GetTaskRequest.task_id:type_name -> com.evrblk.moab.corepb.TaskId
+	5,  // 30: com.evrblk.moab.corepb.GetTaskResponse.task:type_name -> com.evrblk.moab.corepb.Task
+	41, // 31: com.evrblk.moab.corepb.PurgeQueueRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	41, // 32: com.evrblk.moab.corepb.PurgeQueueGarbageCollectionRecord.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	41, // 33: com.evrblk.moab.corepb.ListTasksRequest.queue_id:type_name -> com.evrblk.moab.corepb.QueueId
+	44, // 34: com.evrblk.moab.corepb.ListTasksRequest.pagination_token:type_name -> com.evrblk.moab.corepb.PaginationToken
+	0,  // 35: com.evrblk.moab.corepb.ListTasksRequest.state:type_name -> com.evrblk.moab.corepb.TaskState
+	5,  // 36: com.evrblk.moab.corepb.ListTasksResponse.tasks:type_name -> com.evrblk.moab.corepb.Task
+	44, // 37: com.evrblk.moab.corepb.ListTasksResponse.next_pagination_token:type_name -> com.evrblk.moab.corepb.PaginationToken
+	44, // 38: com.evrblk.moab.corepb.ListTasksResponse.previous_pagination_token:type_name -> com.evrblk.moab.corepb.PaginationToken
+	39, // [39:39] is the sub-list for method output_type
+	39, // [39:39] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_pkg_corepb_tasks_proto_init() }
@@ -2493,8 +2640,8 @@ func file_pkg_corepb_tasks_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_corepb_tasks_proto_rawDesc), len(file_pkg_corepb_tasks_proto_rawDesc)),
-			NumEnums:      4,
-			NumMessages:   34,
+			NumEnums:      5,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

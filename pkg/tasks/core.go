@@ -266,6 +266,7 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest, log *slog.Logger) (*coreapi
 	accountId, queueId := req.Payload.QueueId.AccountId, req.Payload.QueueId.QueueId
 
 	if appErr, err := c.checkQueueNotPurged(txn, accountId, queueId); err != nil {
+		log.Error("!!!", "error", err)
 		return nil, err
 	} else if appErr != nil {
 		return &coreapis.EnqueueResponse{ApplicationError: appErr}, nil
@@ -276,6 +277,7 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest, log *slog.Logger) (*coreapi
 
 	state, err := c.queueState.Get(txn, accountId, queueId)
 	if err != nil {
+		log.Error("!!!", "error", err)
 		return nil, err
 	}
 
@@ -290,12 +292,14 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest, log *slog.Logger) (*coreapi
 		if entry.DedupeKey != "" {
 			duplicateId, ok, err := c.getTaskIdByDedupeKey(txn, accountId, queueId, entry.DedupeKey)
 			if err != nil {
+				log.Error("!!!", "error", err)
 				return nil, err
 			}
 
 			if ok {
 				duplicate, err := c.overwriteDuplicate(txn, duplicateId, entry.OverwriteOnDuplicate, scheduledAt, entry.Payload, entry.ExpiresAt)
 				if err != nil {
+					log.Error("!!!", "error", err)
 					return nil, err
 				}
 
@@ -316,21 +320,21 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest, log *slog.Logger) (*coreapi
 				QueueId:   queueId,
 				TaskId:    state.TaskIdSequence,
 			},
-			Payload:                   entry.Payload,
-			CreatedAt:                 req.Now,
-			ScheduledAt:               scheduledAt,
-			State:                     corepb.TaskState_TASK_STATE_ENQUEUED,
-			Attempts:                  0,
-			ExpiresAt:                 entry.ExpiresAt,
-			DedupeKey:                 entry.DedupeKey,
-			ThreadId:                  entry.ThreadId,
-			VisibleAt:                 0,
-			LastFailedAt:              0,
-			RetryStrategy:             entry.RetryStrategy,
-			KeepaliveTimeoutInSeconds: entry.KeepaliveTimeoutInSeconds,
+			Payload:       entry.Payload,
+			CreatedAt:     req.Now,
+			ScheduledAt:   scheduledAt,
+			State:         corepb.TaskState_TASK_STATE_ENQUEUED,
+			Attempts:      0,
+			ExpiresAt:     entry.ExpiresAt,
+			DedupeKey:     entry.DedupeKey,
+			ThreadId:      entry.ThreadId,
+			VisibleAt:     0,
+			LastFailedAt:  0,
+			RetryStrategy: entry.RetryStrategy,
 		}
 
 		if err := c.createTask(txn, task); err != nil {
+			log.Error("Failed to create task", "error", err)
 			return nil, err
 		}
 
@@ -338,10 +342,12 @@ func (c *Core) Enqueue(req *coreapis.EnqueueRequest, log *slog.Logger) (*coreapi
 	}
 
 	if err := c.queueState.Set(txn, accountId, queueId, state); err != nil {
+		log.Error("Failed to set queue state", "error", err)
 		return nil, err
 	}
 
 	if err := txn.Commit(); err != nil {
+		log.Error("Failed to commit transaction", "error", err)
 		return nil, err
 	}
 
@@ -414,7 +420,7 @@ func (c *Core) Dequeue(req *coreapis.DequeueRequest, log *slog.Logger) (*coreapi
 		return nil, err
 	}
 
-	tasks, err := c.dequeueTasksBeforeTime(txn, accountId, queueId, req.Now, dequeueLimit, req.Payload.DequeuingSettings)
+	tasks, err := c.dequeueTasksBeforeTime(txn, accountId, queueId, req.Now, dequeueLimit, req.Payload.DequeuingSettings, req.Payload.KeepaliveTimeoutInSeconds)
 	if err != nil {
 		return nil, err
 	}
@@ -440,15 +446,24 @@ func (c *Core) Dequeue(req *coreapis.DequeueRequest, log *slog.Logger) (*coreapi
 // corresponding task: STATUS_IN_PROGRESS extends its keepalive deadline,
 // STATUS_SUCCEEDED deletes it, and STATUS_FAILED either schedules a retry
 // per its RetryStrategy or moves it to dead once retries are exhausted. An
-// entry for a task that no longer exists, or that is not currently in
-// progress, is silently ignored.
+// entry for a task that no longer exists, that is not currently in
+// progress, or whose Attempt is stale is not applied - but unlike earlier
+// versions of this API, that outcome is not silent: the response carries
+// one ReportStatusResponseEntry per request entry (same order), so the
+// caller can tell exactly which reports actually took effect.
 func (c *Core) ReportStatus(req *coreapis.ReportStatusRequest, log *slog.Logger) (*coreapis.ReportStatusResponse, error) {
 	txn := c.badgerStore.Update()
 	defer txn.Discard()
 
-	for _, entry := range req.Payload.Entries {
-		if err := c.reportStatus(txn, entry.TaskId, req.Now, entry.Status, entry.Attempt, req.Payload.DeadLetterQueueConfig); err != nil {
+	entries := make([]*corepb.ReportStatusResponseEntry, len(req.Payload.Entries))
+	for i, entry := range req.Payload.Entries {
+		result, err := c.reportStatus(txn, entry.TaskId, req.Now, entry.Status, entry.Attempt, entry.KeepaliveTimeoutInSeconds, req.Payload.DeadLetterQueueConfig)
+		if err != nil {
 			return nil, err
+		}
+		entries[i] = &corepb.ReportStatusResponseEntry{
+			TaskId: entry.TaskId,
+			Result: result,
 		}
 	}
 
@@ -457,7 +472,7 @@ func (c *Core) ReportStatus(req *coreapis.ReportStatusRequest, log *slog.Logger)
 	}
 
 	return &coreapis.ReportStatusResponse{
-		Payload: &corepb.ReportStatusResponse{},
+		Payload: &corepb.ReportStatusResponse{Entries: entries},
 	}, nil
 }
 
@@ -804,38 +819,52 @@ func (c *Core) RunTasksGarbageCollection(req *coreapis.RunTasksGarbageCollection
 	}, nil
 }
 
-func (c *Core) reportStatus(txn *store.Txn, taskId *corepb.TaskId, now int64, status corepb.ReportStatusRequestEntry_Status, attempt int32, dlqConfig *corepb.DeadLetterQueueConfig) error {
+// reportStatus applies one ReportStatus entry and reports what happened via
+// its Result return value, distinct from the error return: Result is a
+// business outcome the caller (ultimately the worker that sent the report)
+// needs to see, while error is reserved for genuine storage/system
+// failures that abort the whole batch (see ReportStatus).
+func (c *Core) reportStatus(txn *store.Txn, taskId *corepb.TaskId, now int64, status corepb.ReportStatusRequestEntry_Status, attempt int32, keepaliveTimeoutInSeconds int64, dlqConfig *corepb.DeadLetterQueueConfig) (corepb.ReportStatusResponseEntry_Result, error) {
 	task, err := c.tasks.Get(txn, taskId)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			// Task not found, ignore.
-			return nil
+			return corepb.ReportStatusResponseEntry_RESULT_NOT_FOUND, nil
 		}
-		return err
+		return corepb.ReportStatusResponseEntry_RESULT_INVALID, err
 	}
 
 	// Only in-progress tasks can be heartbeated; enqueued/dead tasks ignore any report.
 	if task.State != corepb.TaskState_TASK_STATE_IN_PROGRESS {
-		return nil
+		return corepb.ReportStatusResponseEntry_RESULT_NOT_IN_PROGRESS, nil
 	}
 
 	// A stale report — the worker's lease already moved on (redelivered after
 	// a keepalive timeout, or this task id was deleted and later restarted
-	// under a fresh generation) — is a silent no-op, never a mutation.
+	// under a fresh generation) — is not applied, never a mutation.
 	if task.Attempts != attempt {
-		return nil
+		return corepb.ReportStatusResponseEntry_RESULT_STALE_ATTEMPT, nil
 	}
 
+	var applyErr error
 	switch status {
 	case corepb.ReportStatusRequestEntry_STATUS_IN_PROGRESS:
-		return c.heartbeatTask(txn, task, now)
+		applyErr = c.heartbeatTask(txn, task, now, keepaliveTimeoutInSeconds)
 	case corepb.ReportStatusRequestEntry_STATUS_FAILED:
-		return c.handleTaskFailure(txn, task, now, dlqConfig)
+		applyErr = c.handleTaskFailure(txn, task, now, dlqConfig)
 	case corepb.ReportStatusRequestEntry_STATUS_SUCCEEDED:
-		return c.deleteTask(txn, task, taskDeletionSucceeded)
+		applyErr = c.deleteTask(txn, task, taskDeletionSucceeded)
+	default:
+		// Unreachable in practice - the server handler validates Status
+		// before it ever reaches the core - but there's no sane mutation to
+		// apply for a value outside the enum, so treat it as a no-op rather
+		// than silently taking one of the branches above.
+		return corepb.ReportStatusResponseEntry_RESULT_INVALID, nil
+	}
+	if applyErr != nil {
+		return corepb.ReportStatusResponseEntry_RESULT_INVALID, applyErr
 	}
 
-	return nil
+	return corepb.ReportStatusResponseEntry_RESULT_OK, nil
 }
 
 // handleTaskFailure applies the outcome of one failed delivery attempt to an
@@ -863,13 +892,16 @@ func (c *Core) handleTaskFailure(txn *store.Txn, task *corepb.Task, now int64, d
 
 // heartbeatTask extends a task's visibility deadline; it is invoked only for
 // the current head of its thread, since only a thread's head is ever
-// dequeued and therefore ever heartbeated.
-func (c *Core) heartbeatTask(txn *store.Txn, task *corepb.Task, now int64) error {
+// dequeued and therefore ever heartbeated. keepaliveTimeoutInSeconds is
+// resolved by the server from this ReportStatus call (the request's
+// override, or the queue's default) — not read off the task, which no
+// longer stores one.
+func (c *Core) heartbeatTask(txn *store.Txn, task *corepb.Task, now int64, keepaliveTimeoutInSeconds int64) error {
 	if err := c.tasks.inProgressIndex.Delete(txn, c.tasks.tablePK(task.Id.AccountId, task.Id.QueueId), inProgressIndexItem(task.VisibleAt, task.Id.TaskId)); err != nil {
 		return err
 	}
 
-	task.VisibleAt = now + task.KeepaliveTimeoutInSeconds*int64(time.Second)
+	task.VisibleAt = now + keepaliveTimeoutInSeconds*int64(time.Second)
 	if err := c.tasks.set(txn, task); err != nil {
 		return err
 	}
@@ -1119,7 +1151,12 @@ func (c *Core) dequeueInProgressTasksBeforeTime(txn *store.Txn, accountId, queue
 }
 
 // dequeueTasksBeforeTime dequeues tasks from the main queueIndex.
-func (c *Core) dequeueTasksBeforeTime(txn *store.Txn, accountId, queueId uint64, now int64, limit int64, dequeuingSettings *corepb.DequeuingSettings) ([]*corepb.Task, error) {
+// keepaliveTimeoutInSeconds is already resolved by the server (the request's
+// override, or the queue's default) and is used to compute each dequeued
+// task's initial VisibleAt. It is not stored on the task — a later
+// heartbeatTask (ReportStatus) call resolves its own value the same way,
+// independently, rather than reusing whatever was used here.
+func (c *Core) dequeueTasksBeforeTime(txn *store.Txn, accountId, queueId uint64, now int64, limit int64, dequeuingSettings *corepb.DequeuingSettings, keepaliveTimeoutInSeconds int64) ([]*corepb.Task, error) {
 	dequeuedTasks := make([]*corepb.Task, 0)
 	expiredTasks := make([]*corepb.Task, 0)
 
@@ -1230,7 +1267,7 @@ func (c *Core) dequeueTasksBeforeTime(txn *store.Txn, accountId, queueId uint64,
 			return nil, err
 		}
 
-		task.VisibleAt = now + task.KeepaliveTimeoutInSeconds*int64(time.Second)
+		task.VisibleAt = now + keepaliveTimeoutInSeconds*int64(time.Second)
 		task.Attempts = task.Attempts + 1
 		task.State = corepb.TaskState_TASK_STATE_IN_PROGRESS
 		if err := c.tasks.set(txn, task); err != nil {
@@ -1555,7 +1592,7 @@ func (c *Core) reconcileThreadHead(txn *store.Txn, accountId, queueId uint64, th
 	err := c.threads.ListIndex(txn, accountId, queueId, thread.ThreadId, func(taskId uint64) (bool, error) {
 		task, err := c.tasks.Get(txn, &corepb.TaskId{AccountId: accountId, QueueId: queueId, TaskId: taskId})
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("reconcileThreadHead: get earliest thread_id=%s task_id=%d: %w", thread.ThreadId, taskId, err)
 		}
 		earliest = task
 		// Only the earliest (first, since the index is sorted) task matters.
@@ -1567,7 +1604,7 @@ func (c *Core) reconcileThreadHead(txn *store.Txn, accountId, queueId uint64, th
 
 	currentHead, err := c.tasks.Get(txn, thread.HeadTaskId)
 	if err != nil {
-		return err
+		return fmt.Errorf("reconcileThreadHead: get currentHead thread_id=%s head_task_id=%d: %w", thread.ThreadId, thread.HeadTaskId.TaskId, err)
 	}
 
 	pk := c.tasks.tablePK(accountId, queueId)
@@ -1624,7 +1661,7 @@ func (c *Core) promoteNextThreadHead(txn *store.Txn, accountId, queueId uint64, 
 	err := c.threads.ListIndex(txn, accountId, queueId, thread.ThreadId, func(taskId uint64) (bool, error) {
 		nextHead, err := c.tasks.Get(txn, &corepb.TaskId{AccountId: accountId, QueueId: queueId, TaskId: taskId})
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("promoteNextThreadHead: get nextHead thread_id=%s task_id=%d: %w", thread.ThreadId, taskId, err)
 		}
 
 		nextHeadFound = true

@@ -680,6 +680,19 @@ func (m *ReportStatusResponse) MarshalBinary() (data []byte, err error) {
 	return m.MarshalVT()
 }
 
+// ReportStatusResponseEntry
+
+var _ encoding.BinaryMarshaler = (*ReportStatusResponseEntry)(nil)
+var _ encoding.BinaryUnmarshaler = (*ReportStatusResponseEntry)(nil)
+
+func (m *ReportStatusResponseEntry) UnmarshalBinary(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+func (m *ReportStatusResponseEntry) MarshalBinary() (data []byte, err error) {
+	return m.MarshalVT()
+}
+
 // RestartTasksRequest
 
 var _ encoding.BinaryMarshaler = (*RestartTasksRequest)(nil)

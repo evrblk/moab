@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"log"
+	"log/slog"
 	"math/rand"
 	"time"
 
@@ -15,8 +17,19 @@ import (
 // goroutines concurrently, so the handler uses the math/rand package-level
 // functions (safe for concurrent use) rather than a private *rand.Rand.
 func RunConsumer(ctx context.Context, id int, client moab.MoabApi, queueName string, config *Config, stats *StatsCollector) {
-	consumer := moab.NewMoabConsumer(client, queueName)
-	consumer.Start(ctx, moab.HandlerFunc(func(task *moab.Task) error {
+	consumer, err := moab.NewMoabConsumer(client, queueName, slog.Default(), moab.ConsumerConfig{
+		// Required; must clear twice the default ReportFlushInterval/
+		// ReportStatusTimeout (5s each). Doesn't need to cover
+		// HandlerLatencyMsMax - a handler running longer than this just
+		// gets heartbeated by MoabConsumer in the meantime, same as any
+		// other long-running task would be.
+		KeepAliveTimeout: 30 * time.Second,
+	})
+	if err != nil {
+		log.Fatalf("consumer %d: NewMoabConsumer: %v", id, err)
+	}
+
+	consumer.Start(ctx, func(ctx context.Context, task *moab.Task) error {
 		startTime := time.Now()
 
 		if config.HandlerLatencyMsMax > 0 {
@@ -32,7 +45,7 @@ func RunConsumer(ctx context.Context, id int, client moab.MoabApi, queueName str
 		stats.RecordHandled(true)
 
 		return nil
-	}))
+	})
 }
 
 // randIntBetween returns a random integer from [a, b] using the math/rand

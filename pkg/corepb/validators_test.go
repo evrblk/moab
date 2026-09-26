@@ -92,22 +92,14 @@ func TestCreateScheduleRequest_Validate(t *testing.T) {
 	req.Timezone = "this is not a timezone at all!!"
 	require.Error(t, req.Validate())
 
-	// ExpiresInSeconds/KeepaliveTimeoutInSeconds are optional overrides here
-	// (0 means "use the queue's setting"), unlike CreateQueueRequest.
+	// ExpiresInSeconds is an optional override here (0 means "use the
+	// queue's setting"), unlike CreateQueueRequest.
 	req = valid()
 	req.ExpiresInSeconds = 0
 	require.NoError(t, req.Validate())
 
 	req = valid()
 	req.ExpiresInSeconds = -1
-	require.Error(t, req.Validate())
-
-	req = valid()
-	req.KeepaliveTimeoutInSeconds = 0
-	require.NoError(t, req.Validate())
-
-	req = valid()
-	req.KeepaliveTimeoutInSeconds = 4
 	require.Error(t, req.Validate())
 
 	req = valid()
@@ -135,10 +127,6 @@ func TestUpdateScheduleRequest_Validate(t *testing.T) {
 
 	req = valid()
 	req.ExpiresInSeconds = -1
-	require.Error(t, req.Validate())
-
-	req = valid()
-	req.KeepaliveTimeoutInSeconds = 4
 	require.Error(t, req.Validate())
 
 	req = valid()
@@ -200,6 +188,17 @@ func TestDequeueRequest_Validate(t *testing.T) {
 		DeadLetterQueueConfig: &DeadLetterQueueConfig{Enable: true, RetentionPeriodInSeconds: 0},
 	}
 	require.Error(t, req.Validate())
+
+	// KeepaliveTimeoutInSeconds is an optional override (0 means "use the
+	// queue's setting") — this is the consumer's own call, unlike Enqueue.
+	req = &DequeueRequest{QueueId: validQueueId(), KeepaliveTimeoutInSeconds: 0}
+	require.NoError(t, req.Validate())
+
+	req = &DequeueRequest{QueueId: validQueueId(), KeepaliveTimeoutInSeconds: 4}
+	require.Error(t, req.Validate())
+
+	req = &DequeueRequest{QueueId: validQueueId(), KeepaliveTimeoutInSeconds: 15}
+	require.NoError(t, req.Validate())
 }
 
 func TestEnqueueRequest_Validate(t *testing.T) {
@@ -229,10 +228,6 @@ func TestEnqueueRequest_Validate(t *testing.T) {
 
 	req = valid()
 	req.Entries[0].ExpiresAt = -1
-	require.Error(t, req.Validate())
-
-	req = valid()
-	req.Entries[0].KeepaliveTimeoutInSeconds = 4
 	require.Error(t, req.Validate())
 
 	req = valid()

@@ -81,12 +81,6 @@ func (r *CreateScheduleRequest) Validate() error {
 		}
 	}
 
-	if r.KeepaliveTimeoutInSeconds != 0 {
-		if err := validateKeepaliveTimeoutInSeconds(r.KeepaliveTimeoutInSeconds); err != nil {
-			return err
-		}
-	}
-
 	if err := validateRetryStrategy(r.RetryStrategy); err != nil {
 		return err
 	}
@@ -149,6 +143,12 @@ func (r *DequeueRequest) Validate() error {
 		return err
 	}
 
+	if r.KeepaliveTimeoutInSeconds != 0 {
+		if err := validateKeepaliveTimeoutInSeconds(r.KeepaliveTimeoutInSeconds); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -170,12 +170,6 @@ func (r *EnqueueRequest) Validate() error {
 
 		if e.ExpiresAt < 0 {
 			return fmt.Errorf("Entries[%d].ExpiresAt must be non-negative", i)
-		}
-
-		if e.KeepaliveTimeoutInSeconds != 0 {
-			if err := validateKeepaliveTimeoutInSeconds(e.KeepaliveTimeoutInSeconds); err != nil {
-				return fmt.Errorf("Entries[%d].%w", i, err)
-			}
 		}
 
 		if err := validateRetryStrategy(e.RetryStrategy); err != nil {
@@ -281,6 +275,12 @@ func (r *ReportStatusRequest) Validate() error {
 		if err := validateTaskId(e.TaskId); err != nil {
 			return fmt.Errorf("Entries[%d].%w", i, err)
 		}
+
+		if e.KeepaliveTimeoutInSeconds != 0 {
+			if err := validateKeepaliveTimeoutInSeconds(e.KeepaliveTimeoutInSeconds); err != nil {
+				return fmt.Errorf("Entries[%d].%w", i, err)
+			}
+		}
 	}
 
 	if err := validateDeadLetterQueueConfig(r.DeadLetterQueueConfig); err != nil {
@@ -381,12 +381,6 @@ func (r *UpdateScheduleRequest) Validate() error {
 
 	if r.ExpiresInSeconds != 0 {
 		if err := validateExpiresInSeconds(r.ExpiresInSeconds); err != nil {
-			return err
-		}
-	}
-
-	if r.KeepaliveTimeoutInSeconds != 0 {
-		if err := validateKeepaliveTimeoutInSeconds(r.KeepaliveTimeoutInSeconds); err != nil {
 			return err
 		}
 	}

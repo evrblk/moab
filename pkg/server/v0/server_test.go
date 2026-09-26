@@ -423,6 +423,20 @@ func TestReportStatusValidation(t *testing.T) {
 		},
 	})
 	require.Error(t, err)
+
+	// invalid request - keepalive override out of bounds
+	_, err = server.ReportStatus(ctx, &moabpb.ReportStatusRequest{
+		QueueName: "testqueue",
+		Entries: []*moabpb.ReportStatusRequestEntry{
+			{
+				TaskId:                    taskId,
+				Attempt:                   1,
+				Status:                    moabpb.ReportStatusRequestEntry_STATUS_IN_PROGRESS,
+				KeepaliveTimeoutInSeconds: 4,
+			},
+		},
+	})
+	require.Error(t, err)
 }
 
 func TestDeleteTasksValidation(t *testing.T) {
@@ -802,14 +816,13 @@ func TestCreateScheduleValidation(t *testing.T) {
 
 	// valid request
 	resp, err := server.CreateSchedule(ctx, &moabpb.CreateScheduleRequest{
-		QueueName:                 "testqueue",
-		Name:                      "testschedule",
-		Description:               "Test schedule",
-		Cron:                      "0 0 * * *",
-		Payload:                   []byte("test payload"),
-		ExpiresInSeconds:          86400,
-		KeepaliveTimeoutInSeconds: 5,
-		Timezone:                  "UTC",
+		QueueName:        "testqueue",
+		Name:             "testschedule",
+		Description:      "Test schedule",
+		Cron:             "0 0 * * *",
+		Payload:          []byte("test payload"),
+		ExpiresInSeconds: 86400,
+		Timezone:         "UTC",
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp.Schedule)
@@ -887,15 +900,14 @@ func TestUpdateScheduleValidation(t *testing.T) {
 
 	// valid request
 	resp, err := server.UpdateSchedule(ctx, &moabpb.UpdateScheduleRequest{
-		QueueName:                 "testqueue",
-		ScheduleName:              "testschedule",
-		Description:               "Updated description",
-		Cron:                      "0 12 * * *",
-		Payload:                   []byte("updated payload"),
-		ExpiresInSeconds:          172800,
-		KeepaliveTimeoutInSeconds: 10,
-		Timezone:                  "UTC",
-		ExpectedVersion:           1,
+		QueueName:        "testqueue",
+		ScheduleName:     "testschedule",
+		Description:      "Updated description",
+		Cron:             "0 12 * * *",
+		Payload:          []byte("updated payload"),
+		ExpiresInSeconds: 172800,
+		Timezone:         "UTC",
+		ExpectedVersion:  1,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp.Schedule)

@@ -127,12 +127,11 @@ func (w *MoabQueuesCronWorker) fetch(shardId string, now time.Time) error {
 
 					if expiresAt > now.UnixNano() {
 						entries = append(entries, &corepb.EnqueueRequestEntry{
-							Payload:                   schedule.Payload,
-							ScheduledAt:               scheduledAt,
-							ExpiresAt:                 expiresAt,
-							DedupeKey:                 schedule.DedupeKey,
-							KeepaliveTimeoutInSeconds: schedule.KeepaliveTimeoutInSeconds,
-							RetryStrategy:             retryStrategy,
+							Payload:       schedule.Payload,
+							ScheduledAt:   scheduledAt,
+							ExpiresAt:     expiresAt,
+							DedupeKey:     schedule.DedupeKey,
+							RetryStrategy: retryStrategy,
 						})
 						lastEnqueuedFor = scheduledAt
 					}

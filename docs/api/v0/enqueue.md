@@ -2,8 +2,12 @@
 
 Puts a batch of tasks into the queue.
 
-Optional parameters `keepalive_timeout_in_seconds`, `expires_at`, and `retry_strategy` override corresponding values from 
-the queue. That means each task can have individual retry strategy within the same queue.
+Optional parameters `expires_at` and `retry_strategy` override corresponding values from the queue. That means each
+task can have individual retry strategy within the same queue.
+
+Note that `keepalive_timeout_in_seconds` is not set here: it is controlled by the consumer, not the producer, so it
+is specified on `Dequeue` instead (see [Dequeue](/docs/api/v0/dequeue.md)), overriding the queue's default for the
+batch of tasks that call picks up.
 
 A task can be scheduled into the future by specifying `scheduled_at` timestamp (Unix time in nanoseconds). If it is set
 to 0 it will default to `now` and the task will be available for dequeing immediately.
@@ -26,7 +30,6 @@ change made by `UpdateQueue`, such as changing default keepalive timeout, will b
       "scheduled_at": 0,
       "expires_at": 0,
       "dedupe_key": "unique_key_123",
-      "keepalive_timeout_in_seconds": 60,
       "retry_strategy": {
       },
       "overwrite_on_duplicate": []

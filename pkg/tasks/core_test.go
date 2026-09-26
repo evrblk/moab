@@ -830,12 +830,12 @@ func TestDequeueDeletesZeroExpiresAtInProgressTaskInsteadOfRedequeuingIt(t *test
 	// Enqueue with a real ExpiresAt so the first Dequeue call accepts it and
 	// puts it in progress...
 	e := entry("in-progress")
-	e.KeepaliveTimeoutInSeconds = 5
 
 	tasks := enqueue(t, core, accountId, queueId, now, e)
 	require.Len(t, tasks, 1)
 
-	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
+	// A short keepalive so it lapses quickly below.
+	dequeued := dequeueWithKeepalive(t, core, accountId, queueId, now, 10, nil, 5)
 	require.Len(t, dequeued, 1)
 	require.Equal(t, corepb.TaskState_TASK_STATE_IN_PROGRESS, dequeued[0].State)
 
@@ -876,11 +876,11 @@ func TestKeepaliveTimeoutAppliesRetryBackoffInsteadOfInstantRedelivery(t *testin
 	now := time.Now()
 
 	e := entry("a")
-	e.KeepaliveTimeoutInSeconds = 5
 	e.RetryStrategy = &corepb.RetryStrategy{RetryIntervalsInSeconds: []int64{10, 20}}
 	enqueue(t, core, accountId, queueId, now, e)
 
-	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
+	// A short keepalive so it lapses quickly below.
+	dequeued := dequeueWithKeepalive(t, core, accountId, queueId, now, 10, nil, 5)
 	require.Len(t, dequeued, 1)
 	require.EqualValues(t, 1, dequeued[0].Attempts)
 
@@ -901,6 +901,42 @@ func TestKeepaliveTimeoutAppliesRetryBackoffInsteadOfInstantRedelivery(t *testin
 	redequeued := dequeue(t, core, accountId, queueId, afterBackoff, 10, nil)
 	require.Len(t, redequeued, 1)
 	require.EqualValues(t, 2, redequeued[0].Attempts)
+}
+
+// TestHeartbeatRenewsVisibleAtByItsOwnKeepalive pins down that a
+// STATUS_IN_PROGRESS report computes the renewed VisibleAt from the
+// keepalive it carries on the request itself, not from any value recorded
+// when the task was dequeued (the task no longer stores one at all).
+func TestHeartbeatRenewsVisibleAtByItsOwnKeepalive(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	enqueue(t, core, accountId, queueId, now, entry("a"))
+
+	// Dequeue with one keepalive duration...
+	dequeued := dequeueWithKeepalive(t, core, accountId, queueId, now, 10, nil, 30)
+	require.Len(t, dequeued, 1)
+	require.Equal(t, now.Add(30*time.Second).UnixNano(), dequeued[0].VisibleAt)
+
+	// ...then heartbeat with a completely different one. The renewed
+	// VisibleAt must reflect the heartbeat's own value, not the original 30s.
+	heartbeat(t, core, dequeued[0].Id, now, dequeued[0].Attempts, 90)
+
+	fetched := getTask(t, core, dequeued[0].Id, now)
+	require.Equal(t, now.Add(90*time.Second).UnixNano(), fetched.VisibleAt)
+
+	// Long past the original 30s (and its own first heartbeat would have
+	// lapsed by now too, if a second heartbeat didn't keep renewing it),
+	// but still comfortably within the 90s the latest heartbeat granted:
+	// a redequeue attempt must not reclaim it.
+	later := now.Add(45 * time.Second)
+	redequeued := dequeue(t, core, accountId, queueId, later, 10, nil)
+	require.Len(t, redequeued, 0)
+
+	stillInProgress := getTask(t, core, dequeued[0].Id, later)
+	require.Equal(t, corepb.TaskState_TASK_STATE_IN_PROGRESS, stillInProgress.State)
 }
 
 // TestReportStatusIgnoresStaleAttempt pins down attempt fencing: a report
@@ -942,6 +978,49 @@ func TestReportStatusIgnoresStaleAttempt(t *testing.T) {
 	require.Equal(t, mrpc.NotFound, appErr.Code)
 }
 
+// TestReportStatusResultReflectsEachOutcome pins down that ReportStatus's
+// per-entry Result actually distinguishes why a report was (or wasn't)
+// applied, rather than a caller only being able to tell "some mutation might
+// have happened" from a uniformly successful, silent no-op.
+func TestReportStatusResultReflectsEachOutcome(t *testing.T) {
+	core := newTasksCore(t)
+
+	accountId, queueId := rand.Uint64(), rand.Uint64()
+	now := time.Now()
+
+	enqueue(t, core, accountId, queueId, now, entry("a"))
+	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
+	require.Len(t, dequeued, 1)
+	taskId := dequeued[0].Id
+	attempt := dequeued[0].Attempts
+
+	// Wrong task id entirely: RESULT_NOT_FOUND.
+	nonexistent := &corepb.TaskId{AccountId: accountId, QueueId: queueId, TaskId: taskId.TaskId + 1}
+	require.Equal(t, corepb.ReportStatusResponseEntry_RESULT_NOT_FOUND,
+		reportStatus(t, core, nonexistent, now, corepb.ReportStatusRequestEntry_STATUS_IN_PROGRESS, 1))
+
+	// Stale attempt: RESULT_STALE_ATTEMPT.
+	require.Equal(t, corepb.ReportStatusResponseEntry_RESULT_STALE_ATTEMPT,
+		reportStatus(t, core, taskId, now, corepb.ReportStatusRequestEntry_STATUS_IN_PROGRESS, attempt+1))
+
+	// Correct attempt, task genuinely in progress: RESULT_OK.
+	require.Equal(t, corepb.ReportStatusResponseEntry_RESULT_OK,
+		heartbeat(t, core, taskId, now, attempt, 30))
+
+	// Complete it, then report again: the task no longer exists at all
+	// (SUCCEEDED deletes it) - RESULT_NOT_FOUND, not RESULT_NOT_IN_PROGRESS.
+	require.Equal(t, corepb.ReportStatusResponseEntry_RESULT_OK,
+		reportStatus(t, core, taskId, now, corepb.ReportStatusRequestEntry_STATUS_SUCCEEDED, attempt))
+	require.Equal(t, corepb.ReportStatusResponseEntry_RESULT_NOT_FOUND,
+		reportStatus(t, core, taskId, now, corepb.ReportStatusRequestEntry_STATUS_SUCCEEDED, attempt))
+
+	// A second task, left ENQUEUED (never dequeued): RESULT_NOT_IN_PROGRESS.
+	enqueued := enqueue(t, core, accountId, queueId, now, entry("b"))
+	require.Len(t, enqueued, 1)
+	require.Equal(t, corepb.ReportStatusResponseEntry_RESULT_NOT_IN_PROGRESS,
+		reportStatus(t, core, enqueued[0].Id, now, corepb.ReportStatusRequestEntry_STATUS_SUCCEEDED, 0))
+}
+
 // TestInProgressTaskIsNeverHiddenOrReapedAsExpired pins down that ExpiresAt
 // is never enforced against a genuinely IN_PROGRESS task, either by GetTask
 // or by background GC — only by a checkpoint (explicit failure or keepalive
@@ -959,9 +1038,9 @@ func TestInProgressTaskIsNeverHiddenOrReapedAsExpired(t *testing.T) {
 	dequeued := dequeue(t, core, accountId, queueId, now, 10, nil)
 	require.Len(t, dequeued, 1)
 
-	// Long past ExpiresAt, but still genuinely in progress (keepalive not
-	// lapsed — entry()'s default KeepaliveTimeoutInSeconds is 30s and this
-	// check runs at +2 minutes only for GetTask/GC, not by redequeuing).
+	// Long past ExpiresAt, but still genuinely in progress: a lapsed
+	// keepalive is only ever discovered by a later Dequeue call, never by
+	// GetTask or GC, and this test never issues one.
 	later := now.Add(2 * time.Minute)
 
 	fetched := getTask(t, core, dequeued[0].Id, later)
@@ -1461,10 +1540,9 @@ func enabledDLQConfig() *corepb.DeadLetterQueueConfig {
 
 func entry(payload string) *corepb.EnqueueRequestEntry {
 	return &corepb.EnqueueRequestEntry{
-		Payload:                   []byte(payload),
-		KeepaliveTimeoutInSeconds: 30,
-		RetryStrategy:             &corepb.RetryStrategy{RetryIntervalsInSeconds: []int64{10, 20, 30}},
-		ExpiresAt:                 time.Now().Add(24 * time.Hour).UnixNano(),
+		Payload:       []byte(payload),
+		RetryStrategy: &corepb.RetryStrategy{RetryIntervalsInSeconds: []int64{10, 20, 30}},
+		ExpiresAt:     time.Now().Add(24 * time.Hour).UnixNano(),
 	}
 }
 
@@ -1519,14 +1597,24 @@ func getTaskWithError(t *testing.T, core *Core, taskId *corepb.TaskId, now time.
 	return resp.ApplicationError
 }
 
+// dequeue defaults KeepaliveTimeoutInSeconds to 30s — the same value every
+// call used to inherit from entry()'s default before Enqueue stopped setting
+// it. Tests exercising a specific keepalive duration (e.g. to make a lease
+// lapse quickly) should use dequeueWithKeepalive instead.
 func dequeue(t *testing.T, core *Core, accountId, queueId uint64, now time.Time, limit int32, settings *corepb.DequeuingSettings) []*corepb.Task {
+	t.Helper()
+	return dequeueWithKeepalive(t, core, accountId, queueId, now, limit, settings, 30)
+}
+
+func dequeueWithKeepalive(t *testing.T, core *Core, accountId, queueId uint64, now time.Time, limit int32, settings *corepb.DequeuingSettings, keepaliveTimeoutInSeconds int64) []*corepb.Task {
 	t.Helper()
 
 	resp, err := core.Dequeue(&coreapis.DequeueRequest{
 		Payload: &corepb.DequeueRequest{
-			QueueId:           &corepb.QueueId{AccountId: accountId, QueueId: queueId},
-			DequeuingSettings: settings,
-			DequeueLimit:      limit,
+			QueueId:                   &corepb.QueueId{AccountId: accountId, QueueId: queueId},
+			DequeuingSettings:         settings,
+			DequeueLimit:              limit,
+			KeepaliveTimeoutInSeconds: keepaliveTimeoutInSeconds,
 		},
 		Now: now.UnixNano(),
 	}, slog.Default())
@@ -1539,9 +1627,9 @@ func dequeue(t *testing.T, core *Core, accountId, queueId uint64, now time.Time,
 	return resp.Payload.Tasks
 }
 
-func reportStatus(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time, status corepb.ReportStatusRequestEntry_Status, attempt int32) {
+func reportStatus(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time, status corepb.ReportStatusRequestEntry_Status, attempt int32) corepb.ReportStatusResponseEntry_Result {
 	t.Helper()
-	reportStatusWithDLQConfig(t, core, taskId, now, status, attempt, nil)
+	return reportStatusWithDLQConfig(t, core, taskId, now, status, attempt, nil)
 }
 
 // reportStatusWithDLQConfig is reportStatus with an explicit
@@ -1549,7 +1637,7 @@ func reportStatus(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time
 // behavior (a nil config, what plain reportStatus passes, means "no DLQ
 // configured" — retry-exhausted tasks are deleted outright, not
 // dead-lettered).
-func reportStatusWithDLQConfig(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time, status corepb.ReportStatusRequestEntry_Status, attempt int32, dlqConfig *corepb.DeadLetterQueueConfig) {
+func reportStatusWithDLQConfig(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time, status corepb.ReportStatusRequestEntry_Status, attempt int32, dlqConfig *corepb.DeadLetterQueueConfig) corepb.ReportStatusResponseEntry_Result {
 	t.Helper()
 
 	resp, err := core.ReportStatus(&coreapis.ReportStatusRequest{
@@ -1566,6 +1654,39 @@ func reportStatusWithDLQConfig(t *testing.T, core *Core, taskId *corepb.TaskId, 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Nil(t, resp.ApplicationError)
+	require.Len(t, resp.Payload.Entries, 1)
+
+	return resp.Payload.Entries[0].Result
+}
+
+// heartbeat sends a STATUS_IN_PROGRESS report with an explicit
+// KeepaliveTimeoutInSeconds override — resolving a zero override to the
+// queue's default is the server handler's job, not the core's, so callers
+// that want that behavior belong in the server/v0 package, not here.
+func heartbeat(t *testing.T, core *Core, taskId *corepb.TaskId, now time.Time, attempt int32, keepaliveTimeoutInSeconds int64) corepb.ReportStatusResponseEntry_Result {
+	t.Helper()
+
+	resp, err := core.ReportStatus(&coreapis.ReportStatusRequest{
+		Payload: &corepb.ReportStatusRequest{
+			QueueId: &corepb.QueueId{AccountId: taskId.AccountId, QueueId: taskId.QueueId},
+			Entries: []*corepb.ReportStatusRequestEntry{
+				{
+					TaskId:                    taskId,
+					Attempt:                   attempt,
+					Status:                    corepb.ReportStatusRequestEntry_STATUS_IN_PROGRESS,
+					KeepaliveTimeoutInSeconds: keepaliveTimeoutInSeconds,
+				},
+			},
+		},
+		Now: now.UnixNano(),
+	}, slog.Default())
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Nil(t, resp.ApplicationError)
+	require.Len(t, resp.Payload.Entries, 1)
+
+	return resp.Payload.Entries[0].Result
 }
 
 func deleteTasks(t *testing.T, core *Core, accountId, queueId uint64, taskIds ...uint64) {

@@ -169,7 +169,7 @@ func (c *Core) CreateQueue(req *coreapis.CreateQueueRequest, log *slog.Logger) (
 		CreatedAt:                 req.Now,
 		UpdatedAt:                 req.Now,
 		Version:                   1,
-		KeepaliveTimeoutInSeconds: req.Payload.KeepaliveTimeoutInSeconds,
+		KeepaliveTimeoutInSeconds: req.Payload.KeepaliveTimeoutInSeconds, // TODO
 		RetryStrategy:             req.Payload.RetryStrategy,
 		DequeuingSettings:         req.Payload.DequeuingSettings,
 		DeadLetterQueueConfig:     req.Payload.DeadLetterQueueConfig,
@@ -603,22 +603,21 @@ func (c *Core) CreateSchedule(req *coreapis.CreateScheduleRequest, log *slog.Log
 	}
 
 	schedule := &corepb.Schedule{
-		Id:                        scheduleId,
-		Name:                      req.Payload.ScheduleName,
-		Description:               req.Payload.Description,
-		CreatedAt:                 req.Now,
-		UpdatedAt:                 req.Now,
-		Version:                   1,
-		Cron:                      req.Payload.Cron,
-		Payload:                   req.Payload.Payload,
-		DedupeKey:                 req.Payload.DedupeKey,
-		ExpiresInSeconds:          req.Payload.ExpiresInSeconds,
-		KeepaliveTimeoutInSeconds: req.Payload.KeepaliveTimeoutInSeconds,
-		RetryStrategy:             req.Payload.RetryStrategy,
-		Timezone:                  req.Payload.Timezone,
-		LastCheckedAt:             0,
-		NextScheduledAt:           nextTime.UnixNano(),
-		LastEnqueuedFor:           0,
+		Id:               scheduleId,
+		Name:             req.Payload.ScheduleName,
+		Description:      req.Payload.Description,
+		CreatedAt:        req.Now,
+		UpdatedAt:        req.Now,
+		Version:          1,
+		Cron:             req.Payload.Cron,
+		Payload:          req.Payload.Payload,
+		DedupeKey:        req.Payload.DedupeKey,
+		ExpiresInSeconds: req.Payload.ExpiresInSeconds,
+		RetryStrategy:    req.Payload.RetryStrategy,
+		Timezone:         req.Payload.Timezone,
+		LastCheckedAt:    0,
+		NextScheduledAt:  nextTime.UnixNano(),
+		LastEnqueuedFor:  0,
 	}
 
 	err = c.schedules.Create(txn, schedule)
@@ -750,7 +749,6 @@ func (c *Core) UpdateSchedule(req *coreapis.UpdateScheduleRequest, log *slog.Log
 	schedule.UpdatedAt = req.Now
 	schedule.Payload = req.Payload.Payload
 	schedule.DedupeKey = req.Payload.DedupeKey
-	schedule.KeepaliveTimeoutInSeconds = req.Payload.KeepaliveTimeoutInSeconds
 	schedule.Cron = req.Payload.Cron
 	schedule.RetryStrategy = req.Payload.RetryStrategy
 	schedule.ExpiresInSeconds = req.Payload.ExpiresInSeconds

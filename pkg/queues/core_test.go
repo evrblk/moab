@@ -104,7 +104,6 @@ func TestCore_CreateSchedule(t *testing.T) {
 	require.Equal(t, []byte("payload"), schedule.Payload)
 	require.Equal(t, "dedupe", schedule.DedupeKey)
 	require.EqualValues(t, 600, schedule.ExpiresInSeconds)
-	require.EqualValues(t, 15, schedule.KeepaliveTimeoutInSeconds)
 	require.EqualValues(t, 1, schedule.Version)
 	require.Equal(t, "America/Los_Angeles", schedule.Timezone)
 
@@ -611,7 +610,6 @@ func TestCore_CreateAndGetSchedule(t *testing.T) {
 	require.Equal(t, []byte("payload"), fetched.Payload)
 	require.Equal(t, "dedupe", fetched.DedupeKey)
 	require.EqualValues(t, 600, fetched.ExpiresInSeconds)
-	require.EqualValues(t, 15, fetched.KeepaliveTimeoutInSeconds)
 	require.EqualValues(t, 1, fetched.Version)
 	require.Equal(t, "America/Los_Angeles", fetched.Timezone)
 	require.EqualValues(t, 0, fetched.LastCheckedAt)
@@ -647,7 +645,6 @@ func TestCore_UpdateSchedule(t *testing.T) {
 	require.Equal(t, []byte("updated payload"), updated.Payload)
 	require.Equal(t, "updated dedupe", updated.DedupeKey)
 	require.EqualValues(t, 1200, updated.ExpiresInSeconds)
-	require.EqualValues(t, 30, updated.KeepaliveTimeoutInSeconds)
 	require.EqualValues(t, 2, updated.Version) // Version should be incremented
 	require.Equal(t, "UTC", updated.Timezone)
 	require.EqualValues(t, 0, updated.LastCheckedAt)   // Should not change
@@ -1168,7 +1165,6 @@ func createSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uin
 			Payload:                      []byte("payload"),
 			DedupeKey:                    "dedupe",
 			ExpiresInSeconds:             600,
-			KeepaliveTimeoutInSeconds:    15,
 			RetryStrategy:                &corepb.RetryStrategy{RetryIntervalsInSeconds: []int64{10, 20, 30}},
 			Timezone:                     "America/Los_Angeles",
 			MaxNumberOfSchedulesPerQueue: 10,
@@ -1245,18 +1241,17 @@ func updateSchedule(t *testing.T, core coreapis.MoabQueuesCoreApi, accountId uin
 
 	resp, err := core.UpdateSchedule(&coreapis.UpdateScheduleRequest{
 		Payload: &corepb.UpdateScheduleRequest{
-			AccountId:                 accountId,
-			QueueName:                 queueName,
-			ScheduleName:              scheduleName,
-			Description:               "Updated description",
-			Cron:                      "*/10 * * * *", // every 10 minutes
-			Payload:                   []byte("updated payload"),
-			DedupeKey:                 "updated dedupe",
-			ExpiresInSeconds:          1200,
-			KeepaliveTimeoutInSeconds: 30,
-			RetryStrategy:             &corepb.RetryStrategy{RetryIntervalsInSeconds: []int64{20, 40, 60}},
-			Timezone:                  "UTC",
-			ExpectedVersion:           1,
+			AccountId:        accountId,
+			QueueName:        queueName,
+			ScheduleName:     scheduleName,
+			Description:      "Updated description",
+			Cron:             "*/10 * * * *", // every 10 minutes
+			Payload:          []byte("updated payload"),
+			DedupeKey:        "updated dedupe",
+			ExpiresInSeconds: 1200,
+			RetryStrategy:    &corepb.RetryStrategy{RetryIntervalsInSeconds: []int64{20, 40, 60}},
+			Timezone:         "UTC",
+			ExpectedVersion:  1,
 		},
 		Now: now.UnixNano(),
 	}, slog.Default())

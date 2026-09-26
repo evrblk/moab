@@ -376,28 +376,26 @@ func (m *Schedule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= 8
 		binary.LittleEndian.PutUint64(dAtA[i:], uint64(m.LastEnqueuedFor))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x81
+		dAtA[i] = 0x79
 	}
 	if m.NextScheduledAt != 0 {
 		i -= 8
 		binary.LittleEndian.PutUint64(dAtA[i:], uint64(m.NextScheduledAt))
 		i--
-		dAtA[i] = 0x79
+		dAtA[i] = 0x71
 	}
 	if m.LastCheckedAt != 0 {
 		i -= 8
 		binary.LittleEndian.PutUint64(dAtA[i:], uint64(m.LastCheckedAt))
 		i--
-		dAtA[i] = 0x71
+		dAtA[i] = 0x69
 	}
 	if len(m.Timezone) > 0 {
 		i -= len(m.Timezone)
 		copy(dAtA[i:], m.Timezone)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Timezone)))
 		i--
-		dAtA[i] = 0x6a
+		dAtA[i] = 0x62
 	}
 	if m.RetryStrategy != nil {
 		size, err := m.RetryStrategy.MarshalToSizedBufferVT(dAtA[:i])
@@ -407,12 +405,7 @@ func (m *Schedule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x62
-	}
-	if m.KeepaliveTimeoutInSeconds != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.KeepaliveTimeoutInSeconds))
-		i--
-		dAtA[i] = 0x58
+		dAtA[i] = 0x5a
 	}
 	if m.ExpiresInSeconds != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ExpiresInSeconds))
@@ -1342,14 +1335,14 @@ func (m *CreateScheduleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.MaxNumberOfSchedulesPerQueue != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.MaxNumberOfSchedulesPerQueue))
 		i--
-		dAtA[i] = 0x68
+		dAtA[i] = 0x60
 	}
 	if len(m.Timezone) > 0 {
 		i -= len(m.Timezone)
 		copy(dAtA[i:], m.Timezone)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Timezone)))
 		i--
-		dAtA[i] = 0x62
+		dAtA[i] = 0x5a
 	}
 	if m.RetryStrategy != nil {
 		size, err := m.RetryStrategy.MarshalToSizedBufferVT(dAtA[:i])
@@ -1359,12 +1352,7 @@ func (m *CreateScheduleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x5a
-	}
-	if m.KeepaliveTimeoutInSeconds != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.KeepaliveTimeoutInSeconds))
-		i--
-		dAtA[i] = 0x50
+		dAtA[i] = 0x52
 	}
 	if m.ExpiresInSeconds != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ExpiresInSeconds))
@@ -1723,14 +1711,14 @@ func (m *UpdateScheduleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.ExpectedVersion != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ExpectedVersion))
 		i--
-		dAtA[i] = 0x60
+		dAtA[i] = 0x58
 	}
 	if len(m.Timezone) > 0 {
 		i -= len(m.Timezone)
 		copy(dAtA[i:], m.Timezone)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Timezone)))
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x52
 	}
 	if m.RetryStrategy != nil {
 		size, err := m.RetryStrategy.MarshalToSizedBufferVT(dAtA[:i])
@@ -1740,12 +1728,7 @@ func (m *UpdateScheduleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x52
-	}
-	if m.KeepaliveTimeoutInSeconds != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.KeepaliveTimeoutInSeconds))
-		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x4a
 	}
 	if m.ExpiresInSeconds != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ExpiresInSeconds))
@@ -2486,9 +2469,6 @@ func (m *Schedule) SizeVT() (n int) {
 	if m.ExpiresInSeconds != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.ExpiresInSeconds))
 	}
-	if m.KeepaliveTimeoutInSeconds != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.KeepaliveTimeoutInSeconds))
-	}
 	if m.RetryStrategy != nil {
 		l = m.RetryStrategy.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -2504,7 +2484,7 @@ func (m *Schedule) SizeVT() (n int) {
 		n += 9
 	}
 	if m.LastEnqueuedFor != 0 {
-		n += 10
+		n += 9
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2853,9 +2833,6 @@ func (m *CreateScheduleRequest) SizeVT() (n int) {
 	if m.ExpiresInSeconds != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.ExpiresInSeconds))
 	}
-	if m.KeepaliveTimeoutInSeconds != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.KeepaliveTimeoutInSeconds))
-	}
 	if m.RetryStrategy != nil {
 		l = m.RetryStrategy.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -3000,9 +2977,6 @@ func (m *UpdateScheduleRequest) SizeVT() (n int) {
 	}
 	if m.ExpiresInSeconds != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.ExpiresInSeconds))
-	}
-	if m.KeepaliveTimeoutInSeconds != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.KeepaliveTimeoutInSeconds))
 	}
 	if m.RetryStrategy != nil {
 		l = m.RetryStrategy.SizeVT()
@@ -4252,25 +4226,6 @@ func (m *Schedule) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 		case 11:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field KeepaliveTimeoutInSeconds", wireType)
-			}
-			m.KeepaliveTimeoutInSeconds = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.KeepaliveTimeoutInSeconds |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RetryStrategy", wireType)
 			}
@@ -4306,7 +4261,7 @@ func (m *Schedule) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 13:
+		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
 			}
@@ -4338,7 +4293,7 @@ func (m *Schedule) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Timezone = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 14:
+		case 13:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LastCheckedAt", wireType)
 			}
@@ -4348,7 +4303,7 @@ func (m *Schedule) UnmarshalVT(dAtA []byte) error {
 			}
 			m.LastCheckedAt = int64(binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
-		case 15:
+		case 14:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NextScheduledAt", wireType)
 			}
@@ -4358,7 +4313,7 @@ func (m *Schedule) UnmarshalVT(dAtA []byte) error {
 			}
 			m.NextScheduledAt = int64(binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
-		case 16:
+		case 15:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LastEnqueuedFor", wireType)
 			}
@@ -6547,25 +6502,6 @@ func (m *CreateScheduleRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field KeepaliveTimeoutInSeconds", wireType)
-			}
-			m.KeepaliveTimeoutInSeconds = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.KeepaliveTimeoutInSeconds |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RetryStrategy", wireType)
 			}
@@ -6601,7 +6537,7 @@ func (m *CreateScheduleRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 12:
+		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
 			}
@@ -6633,7 +6569,7 @@ func (m *CreateScheduleRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Timezone = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 13:
+		case 12:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MaxNumberOfSchedulesPerQueue", wireType)
 			}
@@ -7525,25 +7461,6 @@ func (m *UpdateScheduleRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field KeepaliveTimeoutInSeconds", wireType)
-			}
-			m.KeepaliveTimeoutInSeconds = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.KeepaliveTimeoutInSeconds |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RetryStrategy", wireType)
 			}
@@ -7579,7 +7496,7 @@ func (m *UpdateScheduleRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Timezone", wireType)
 			}
@@ -7611,7 +7528,7 @@ func (m *UpdateScheduleRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Timezone = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 12:
+		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedVersion", wireType)
 			}

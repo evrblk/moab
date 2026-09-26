@@ -43,26 +43,6 @@ func TestValidateEnqueueRequest(t *testing.T) {
 			shouldError: true,
 		},
 		{
-			name: "keepalive too small",
-			request: &moabpb.EnqueueRequest{
-				QueueName: "myqueue1",
-				Entries: []*moabpb.EnqueueRequestEntry{
-					{KeepaliveTimeoutInSeconds: 4},
-				},
-			},
-			shouldError: true,
-		},
-		{
-			name: "keepalive too big",
-			request: &moabpb.EnqueueRequest{
-				QueueName: "myqueue1",
-				Entries: []*moabpb.EnqueueRequestEntry{
-					{KeepaliveTimeoutInSeconds: 61},
-				},
-			},
-			shouldError: true,
-		},
-		{
 			name: "dedupe key too long",
 			request: &moabpb.EnqueueRequest{
 				QueueName: "myqueue1",
@@ -138,11 +118,10 @@ func TestValidateEnqueueRequest(t *testing.T) {
 				QueueName: "myqueue1",
 				Entries: []*moabpb.EnqueueRequestEntry{
 					{
-						Payload:                   []byte(`{"key": "value"}`),
-						ScheduledAt:               0,
-						ExpiresAt:                 0,
-						DedupeKey:                 "key1",
-						KeepaliveTimeoutInSeconds: 0,
+						Payload:     []byte(`{"key": "value"}`),
+						ScheduledAt: 0,
+						ExpiresAt:   0,
+						DedupeKey:   "key1",
 						RetryStrategy: &moabpb.RetryStrategy{
 							RetryIntervalsInSeconds: []int64{1},
 						},
@@ -150,11 +129,10 @@ func TestValidateEnqueueRequest(t *testing.T) {
 						ThreadId:             "",
 					},
 					{
-						Payload:                   []byte(`{"key": "value"}`),
-						ScheduledAt:               0,
-						ExpiresAt:                 0,
-						DedupeKey:                 "key2",
-						KeepaliveTimeoutInSeconds: 15,
+						Payload:     []byte(`{"key": "value"}`),
+						ScheduledAt: 0,
+						ExpiresAt:   0,
+						DedupeKey:   "key2",
 						RetryStrategy: &moabpb.RetryStrategy{
 							RetryIntervalsInSeconds: []int64{1},
 						},
@@ -205,10 +183,37 @@ func TestValidateDequeueRequest(t *testing.T) {
 			shouldError: true,
 		},
 		{
+			name: "keepalive too small",
+			request: &moabpb.DequeueRequest{
+				QueueName:                 "myqueue1",
+				BatchSize:                 10,
+				KeepaliveTimeoutInSeconds: 4,
+			},
+			shouldError: true,
+		},
+		{
+			name: "keepalive too big",
+			request: &moabpb.DequeueRequest{
+				QueueName:                 "myqueue1",
+				BatchSize:                 10,
+				KeepaliveTimeoutInSeconds: 61,
+			},
+			shouldError: true,
+		},
+		{
 			name: "valid request",
 			request: &moabpb.DequeueRequest{
 				QueueName: "myqueue1",
 				BatchSize: 10,
+			},
+			shouldError: false,
+		},
+		{
+			name: "valid request with keepalive override",
+			request: &moabpb.DequeueRequest{
+				QueueName:                 "myqueue1",
+				BatchSize:                 10,
+				KeepaliveTimeoutInSeconds: 15,
 			},
 			shouldError: false,
 		},
@@ -1260,16 +1265,6 @@ func TestValidateCreateScheduleRequest(t *testing.T) {
 			shouldError: true,
 		},
 		{
-			name: "keepalive too small",
-			request: &moabpb.CreateScheduleRequest{
-				QueueName:                 "myqueue1",
-				Name:                      "myschedule1",
-				Cron:                      "0 * * * *",
-				KeepaliveTimeoutInSeconds: 4,
-			},
-			shouldError: true,
-		},
-		{
 			name: "expires too small",
 			request: &moabpb.CreateScheduleRequest{
 				QueueName:        "myqueue1",
@@ -1373,18 +1368,6 @@ func TestValidateUpdateScheduleRequest(t *testing.T) {
 				Timezone:        "UTC",
 				Description:     string(make([]byte, 1025)),
 				ExpectedVersion: 1,
-			},
-			shouldError: true,
-		},
-		{
-			name: "keepalive too small",
-			request: &moabpb.UpdateScheduleRequest{
-				QueueName:                 "myqueue1",
-				ScheduleName:              "myschedule1",
-				Cron:                      "* 0 * * *",
-				Timezone:                  "UTC",
-				KeepaliveTimeoutInSeconds: 4,
-				ExpectedVersion:           1,
 			},
 			shouldError: true,
 		},

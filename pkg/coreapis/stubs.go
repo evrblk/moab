@@ -10,6 +10,7 @@ import (
 	cluster "github.com/evrblk/monstera/cluster"
 	mrpc "github.com/evrblk/monstera/rpc"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 )
@@ -1345,35 +1346,62 @@ type MoabNonclusteredStub struct {
 
 var _ MoabClientApi = &MoabNonclusteredStub{}
 
+func (s *MoabNonclusteredStub) findMoabQueuesAdapter(shardKey cluster.ShardKey) (*moabQueuesCoreNonclusteredAdapter, error) {
+	adapters := s.moabQueuesCores
+	i := sort.Search(len(adapters), func(i int) bool {
+		return adapters[i].lowerBound > shardKey
+	})
+	if i > 0 {
+		candidate := adapters[i-1]
+		if shardKey <= candidate.upperBound {
+			return candidate, nil
+		}
+	}
+	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+}
+
+func (s *MoabNonclusteredStub) findMoabTasksAdapter(shardKey cluster.ShardKey) (*moabTasksCoreNonclusteredAdapter, error) {
+	adapters := s.moabTasksCores
+	i := sort.Search(len(adapters), func(i int) bool {
+		return adapters[i].lowerBound > shardKey
+	})
+	if i > 0 {
+		candidate := adapters[i-1]
+		if shardKey <= candidate.upperBound {
+			return candidate, nil
+		}
+	}
+	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+}
+
 func (s *MoabNonclusteredStub) GetQueue(ctx context.Context, req *corepb.GetQueueRequest, opts ...mrpc.CallOption) (*corepb.GetQueueResponse, error) {
 	settings := mrpc.ApplyCallOptions(opts...)
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.GetQueue(&mrpc.ReadRequest[*corepb.GetQueueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.GetQueue(&mrpc.ReadRequest[*corepb.GetQueueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.GetQueueByNameRequest, opts ...mrpc.CallOption) (*corepb.GetQueueByNameResponse, error) {
@@ -1381,30 +1409,29 @@ func (s *MoabNonclusteredStub) GetQueueByName(ctx context.Context, req *corepb.G
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.GetQueueByName(&mrpc.ReadRequest[*corepb.GetQueueByNameRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.GetQueueByName(&mrpc.ReadRequest[*corepb.GetQueueByNameRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQueuesRequest, opts ...mrpc.CallOption) (*corepb.ListQueuesResponse, error) {
@@ -1412,30 +1439,29 @@ func (s *MoabNonclusteredStub) ListQueues(ctx context.Context, req *corepb.ListQ
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.ListQueues(&mrpc.ReadRequest[*corepb.ListQueuesRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.ListQueues(&mrpc.ReadRequest[*corepb.ListQueuesRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetScheduleRequest, opts ...mrpc.CallOption) (*corepb.GetScheduleResponse, error) {
@@ -1443,30 +1469,29 @@ func (s *MoabNonclusteredStub) GetSchedule(ctx context.Context, req *corepb.GetS
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.GetSchedule(&mrpc.ReadRequest[*corepb.GetScheduleRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.GetSchedule(&mrpc.ReadRequest[*corepb.GetScheduleRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) DequeSchedules(ctx context.Context, req *corepb.DequeSchedulesRequest, shardId string, opts ...mrpc.CallOption) (*corepb.DequeSchedulesResponse, error) {
@@ -1504,30 +1529,29 @@ func (s *MoabNonclusteredStub) ListSchedules(ctx context.Context, req *corepb.Li
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.ListSchedules(&mrpc.ReadRequest[*corepb.ListSchedulesRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.ListSchedules(&mrpc.ReadRequest[*corepb.ListSchedulesRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.CreateQueueRequest, opts ...mrpc.CallOption) (*corepb.CreateQueueResponse, error) {
@@ -1535,30 +1559,29 @@ func (s *MoabNonclusteredStub) CreateQueue(ctx context.Context, req *corepb.Crea
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.CreateQueue(&mrpc.UpdateRequest[*corepb.CreateQueueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.CreateQueue(&mrpc.UpdateRequest[*corepb.CreateQueueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.UpdateQueueRequest, opts ...mrpc.CallOption) (*corepb.UpdateQueueResponse, error) {
@@ -1566,30 +1589,29 @@ func (s *MoabNonclusteredStub) UpdateQueue(ctx context.Context, req *corepb.Upda
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.UpdateQueue(&mrpc.UpdateRequest[*corepb.UpdateQueueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.UpdateQueue(&mrpc.UpdateRequest[*corepb.UpdateQueueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.DeleteQueueRequest, opts ...mrpc.CallOption) (*corepb.DeleteQueueResponse, error) {
@@ -1597,30 +1619,29 @@ func (s *MoabNonclusteredStub) DeleteQueue(ctx context.Context, req *corepb.Dele
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.DeleteQueue(&mrpc.UpdateRequest[*corepb.DeleteQueueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.DeleteQueue(&mrpc.UpdateRequest[*corepb.DeleteQueueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.CreateScheduleRequest, opts ...mrpc.CallOption) (*corepb.CreateScheduleResponse, error) {
@@ -1628,30 +1649,29 @@ func (s *MoabNonclusteredStub) CreateSchedule(ctx context.Context, req *corepb.C
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.CreateSchedule(&mrpc.UpdateRequest[*corepb.CreateScheduleRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.CreateSchedule(&mrpc.UpdateRequest[*corepb.CreateScheduleRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.UpdateScheduleRequest, opts ...mrpc.CallOption) (*corepb.UpdateScheduleResponse, error) {
@@ -1659,30 +1679,29 @@ func (s *MoabNonclusteredStub) UpdateSchedule(ctx context.Context, req *corepb.U
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.UpdateSchedule(&mrpc.UpdateRequest[*corepb.UpdateScheduleRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.UpdateSchedule(&mrpc.UpdateRequest[*corepb.UpdateScheduleRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.DeleteScheduleRequest, opts ...mrpc.CallOption) (*corepb.DeleteScheduleResponse, error) {
@@ -1690,30 +1709,29 @@ func (s *MoabNonclusteredStub) DeleteSchedule(ctx context.Context, req *corepb.D
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.DeleteSchedule(&mrpc.UpdateRequest[*corepb.DeleteScheduleRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.DeleteSchedule(&mrpc.UpdateRequest[*corepb.DeleteScheduleRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) ReportSchedulesStatus(ctx context.Context, req *corepb.ReportSchedulesStatusRequest, shardId string, opts ...mrpc.CallOption) (*corepb.ReportSchedulesStatusResponse, error) {
@@ -1781,30 +1799,29 @@ func (s *MoabNonclusteredStub) SwapQueueId(ctx context.Context, req *corepb.Swap
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabQueuesCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.SwapQueueId(&mrpc.UpdateRequest[*corepb.SwapQueueIdRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabQueuesAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.SwapQueueId(&mrpc.UpdateRequest[*corepb.SwapQueueIdRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskRequest, opts ...mrpc.CallOption) (*corepb.GetTaskResponse, error) {
@@ -1812,30 +1829,29 @@ func (s *MoabNonclusteredStub) GetTask(ctx context.Context, req *corepb.GetTaskR
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.GetTask(&mrpc.ReadRequest[*corepb.GetTaskRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.GetTask(&mrpc.ReadRequest[*corepb.GetTaskRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.GetStatisticsRequest, opts ...mrpc.CallOption) (*corepb.GetStatisticsResponse, error) {
@@ -1843,30 +1859,29 @@ func (s *MoabNonclusteredStub) GetStatistics(ctx context.Context, req *corepb.Ge
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.GetStatistics(&mrpc.ReadRequest[*corepb.GetStatisticsRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.GetStatistics(&mrpc.ReadRequest[*corepb.GetStatisticsRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTasksRequest, opts ...mrpc.CallOption) (*corepb.ListTasksResponse, error) {
@@ -1874,30 +1889,29 @@ func (s *MoabNonclusteredStub) ListTasks(ctx context.Context, req *corepb.ListTa
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.RLock()
-			defer adapter.mu.RUnlock()
-
-			resp, err := adapter.core.ListTasks(&mrpc.ReadRequest[*corepb.ListTasksRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.RLock()
+	defer adapter.mu.RUnlock()
+
+	resp, err := adapter.core.ListTasks(&mrpc.ReadRequest[*corepb.ListTasksRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueRequest, opts ...mrpc.CallOption) (*corepb.EnqueueResponse, error) {
@@ -1905,30 +1919,29 @@ func (s *MoabNonclusteredStub) Enqueue(ctx context.Context, req *corepb.EnqueueR
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.Enqueue(&mrpc.UpdateRequest[*corepb.EnqueueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.Enqueue(&mrpc.UpdateRequest[*corepb.EnqueueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueRequest, opts ...mrpc.CallOption) (*corepb.DequeueResponse, error) {
@@ -1936,30 +1949,29 @@ func (s *MoabNonclusteredStub) Dequeue(ctx context.Context, req *corepb.DequeueR
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.Dequeue(&mrpc.UpdateRequest[*corepb.DequeueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.Dequeue(&mrpc.UpdateRequest[*corepb.DequeueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.ReportStatusRequest, opts ...mrpc.CallOption) (*corepb.ReportStatusResponse, error) {
@@ -1967,30 +1979,29 @@ func (s *MoabNonclusteredStub) ReportStatus(ctx context.Context, req *corepb.Rep
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.ReportStatus(&mrpc.UpdateRequest[*corepb.ReportStatusRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.ReportStatus(&mrpc.UpdateRequest[*corepb.ReportStatusRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.DeleteTasksRequest, opts ...mrpc.CallOption) (*corepb.DeleteTasksResponse, error) {
@@ -1998,30 +2009,29 @@ func (s *MoabNonclusteredStub) DeleteTasks(ctx context.Context, req *corepb.Dele
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.DeleteTasks(&mrpc.UpdateRequest[*corepb.DeleteTasksRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.DeleteTasks(&mrpc.UpdateRequest[*corepb.DeleteTasksRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.RestartTasksRequest, opts ...mrpc.CallOption) (*corepb.RestartTasksResponse, error) {
@@ -2029,30 +2039,29 @@ func (s *MoabNonclusteredStub) RestartTasks(ctx context.Context, req *corepb.Res
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.RestartTasks(&mrpc.UpdateRequest[*corepb.RestartTasksRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.RestartTasks(&mrpc.UpdateRequest[*corepb.RestartTasksRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.PurgeQueueRequest, opts ...mrpc.CallOption) (*corepb.PurgeQueueResponse, error) {
@@ -2060,30 +2069,29 @@ func (s *MoabNonclusteredStub) PurgeQueue(ctx context.Context, req *corepb.Purge
 	now := time.Now().UnixNano()
 
 	shardKey := req.ShardKey()
-	for _, adapter := range s.moabTasksCores {
-		if shardKey >= adapter.lowerBound && shardKey <= adapter.upperBound {
-			adapter.mu.Lock()
-			defer adapter.mu.Unlock()
-
-			resp, err := adapter.core.PurgeQueue(&mrpc.UpdateRequest[*corepb.PurgeQueueRequest]{
-				Now:     now,
-				Payload: req,
-			}, s.logger)
-			if err != nil {
-				return nil, err
-			}
-			err = nilifyIfEmpty(resp.ApplicationError)
-			if err != nil {
-				return nil, err
-			}
-			if settings.ResponseMeta != nil {
-				*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
-			}
-			return resp.Payload, nil
-		}
+	adapter, err := s.findMoabTasksAdapter(shardKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no shard found for shardKey: %s", shardKey)
+	adapter.mu.Lock()
+	defer adapter.mu.Unlock()
+
+	resp, err := adapter.core.PurgeQueue(&mrpc.UpdateRequest[*corepb.PurgeQueueRequest]{
+		Now:     now,
+		Payload: req,
+	}, s.logger)
+	if err != nil {
+		return nil, err
+	}
+	err = nilifyIfEmpty(resp.ApplicationError)
+	if err != nil {
+		return nil, err
+	}
+	if settings.ResponseMeta != nil {
+		*settings.ResponseMeta = mrpc.ResponseMeta{Now: now}
+	}
+	return resp.Payload, nil
 }
 
 func (s *MoabNonclusteredStub) RunTasksGarbageCollection(ctx context.Context, req *corepb.RunTasksGarbageCollectionRequest, shardId string, opts ...mrpc.CallOption) (*corepb.RunTasksGarbageCollectionResponse, error) {

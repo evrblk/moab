@@ -457,16 +457,15 @@ type Schedule struct {
 	Payload     []byte                 `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
 	DedupeKey   string                 `protobuf:"bytes,9,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
 	// Override for expiration set on the queue. 0 - no override.
-	ExpiresInSeconds          int64          `protobuf:"varint,10,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
-	KeepaliveTimeoutInSeconds int64          `protobuf:"varint,11,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
-	RetryStrategy             *RetryStrategy `protobuf:"bytes,12,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
+	ExpiresInSeconds int64          `protobuf:"varint,10,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	RetryStrategy    *RetryStrategy `protobuf:"bytes,11,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
 	// Timezone at which to work with cron schedule
-	Timezone string `protobuf:"bytes,13,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	Timezone string `protobuf:"bytes,12,opt,name=timezone,proto3" json:"timezone,omitempty"`
 	// Last time CronTasker checked on this schedule
-	LastCheckedAt int64 `protobuf:"fixed64,14,opt,name=last_checked_at,json=lastCheckedAt,proto3" json:"last_checked_at,omitempty"`
+	LastCheckedAt int64 `protobuf:"fixed64,13,opt,name=last_checked_at,json=lastCheckedAt,proto3" json:"last_checked_at,omitempty"`
 	// Next earliest cron tick which is scheduled, but not enqueued yet
-	NextScheduledAt int64 `protobuf:"fixed64,15,opt,name=next_scheduled_at,json=nextScheduledAt,proto3" json:"next_scheduled_at,omitempty"`
-	LastEnqueuedFor int64 `protobuf:"fixed64,16,opt,name=last_enqueued_for,json=lastEnqueuedFor,proto3" json:"last_enqueued_for,omitempty"`
+	NextScheduledAt int64 `protobuf:"fixed64,14,opt,name=next_scheduled_at,json=nextScheduledAt,proto3" json:"next_scheduled_at,omitempty"`
+	LastEnqueuedFor int64 `protobuf:"fixed64,15,opt,name=last_enqueued_for,json=lastEnqueuedFor,proto3" json:"last_enqueued_for,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -567,13 +566,6 @@ func (x *Schedule) GetDedupeKey() string {
 func (x *Schedule) GetExpiresInSeconds() int64 {
 	if x != nil {
 		return x.ExpiresInSeconds
-	}
-	return 0
-}
-
-func (x *Schedule) GetKeepaliveTimeoutInSeconds() int64 {
-	if x != nil {
-		return x.KeepaliveTimeoutInSeconds
 	}
 	return 0
 }
@@ -1511,10 +1503,9 @@ type CreateScheduleRequest struct {
 	Payload                      []byte                 `protobuf:"bytes,7,opt,name=payload,proto3" json:"payload,omitempty"`
 	DedupeKey                    string                 `protobuf:"bytes,8,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
 	ExpiresInSeconds             int64                  `protobuf:"varint,9,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
-	KeepaliveTimeoutInSeconds    int64                  `protobuf:"varint,10,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
-	RetryStrategy                *RetryStrategy         `protobuf:"bytes,11,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
-	Timezone                     string                 `protobuf:"bytes,12,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	MaxNumberOfSchedulesPerQueue int64                  `protobuf:"varint,13,opt,name=max_number_of_schedules_per_queue,json=maxNumberOfSchedulesPerQueue,proto3" json:"max_number_of_schedules_per_queue,omitempty"`
+	RetryStrategy                *RetryStrategy         `protobuf:"bytes,10,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
+	Timezone                     string                 `protobuf:"bytes,11,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	MaxNumberOfSchedulesPerQueue int64                  `protobuf:"varint,12,opt,name=max_number_of_schedules_per_queue,json=maxNumberOfSchedulesPerQueue,proto3" json:"max_number_of_schedules_per_queue,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
@@ -1608,13 +1599,6 @@ func (x *CreateScheduleRequest) GetDedupeKey() string {
 func (x *CreateScheduleRequest) GetExpiresInSeconds() int64 {
 	if x != nil {
 		return x.ExpiresInSeconds
-	}
-	return 0
-}
-
-func (x *CreateScheduleRequest) GetKeepaliveTimeoutInSeconds() int64 {
-	if x != nil {
-		return x.KeepaliveTimeoutInSeconds
 	}
 	return 0
 }
@@ -1909,21 +1893,20 @@ func (x *ListSchedulesResponse) GetPreviousPaginationToken() *PaginationToken {
 }
 
 type UpdateScheduleRequest struct {
-	state                     protoimpl.MessageState `protogen:"open.v1"`
-	AccountId                 uint64                 `protobuf:"fixed64,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	QueueName                 string                 `protobuf:"bytes,2,opt,name=queue_name,json=queueName,proto3" json:"queue_name,omitempty"`
-	ScheduleName              string                 `protobuf:"bytes,3,opt,name=schedule_name,json=scheduleName,proto3" json:"schedule_name,omitempty"`
-	Description               string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	Cron                      string                 `protobuf:"bytes,5,opt,name=cron,proto3" json:"cron,omitempty"`
-	Payload                   []byte                 `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
-	DedupeKey                 string                 `protobuf:"bytes,7,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
-	ExpiresInSeconds          int64                  `protobuf:"varint,8,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
-	KeepaliveTimeoutInSeconds int64                  `protobuf:"varint,9,opt,name=keepalive_timeout_in_seconds,json=keepaliveTimeoutInSeconds,proto3" json:"keepalive_timeout_in_seconds,omitempty"`
-	RetryStrategy             *RetryStrategy         `protobuf:"bytes,10,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
-	Timezone                  string                 `protobuf:"bytes,11,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	AccountId        uint64                 `protobuf:"fixed64,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	QueueName        string                 `protobuf:"bytes,2,opt,name=queue_name,json=queueName,proto3" json:"queue_name,omitempty"`
+	ScheduleName     string                 `protobuf:"bytes,3,opt,name=schedule_name,json=scheduleName,proto3" json:"schedule_name,omitempty"`
+	Description      string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Cron             string                 `protobuf:"bytes,5,opt,name=cron,proto3" json:"cron,omitempty"`
+	Payload          []byte                 `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
+	DedupeKey        string                 `protobuf:"bytes,7,opt,name=dedupe_key,json=dedupeKey,proto3" json:"dedupe_key,omitempty"`
+	ExpiresInSeconds int64                  `protobuf:"varint,8,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	RetryStrategy    *RetryStrategy         `protobuf:"bytes,9,opt,name=retry_strategy,json=retryStrategy,proto3" json:"retry_strategy,omitempty"`
+	Timezone         string                 `protobuf:"bytes,10,opt,name=timezone,proto3" json:"timezone,omitempty"`
 	// Optimistic concurrency check: must equal the schedule's current version or
 	// the update is rejected.
-	ExpectedVersion int64 `protobuf:"varint,12,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
+	ExpectedVersion int64 `protobuf:"varint,11,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -2010,13 +1993,6 @@ func (x *UpdateScheduleRequest) GetDedupeKey() string {
 func (x *UpdateScheduleRequest) GetExpiresInSeconds() int64 {
 	if x != nil {
 		return x.ExpiresInSeconds
-	}
-	return 0
-}
-
-func (x *UpdateScheduleRequest) GetKeepaliveTimeoutInSeconds() int64 {
-	if x != nil {
-		return x.KeepaliveTimeoutInSeconds
 	}
 	return 0
 }
@@ -2654,7 +2630,7 @@ const file_pkg_corepb_queues_proto_rawDesc = "" +
 	"\n" +
 	"max_tokens\x18\x01 \x01(\x03R\tmaxTokens\x12\x1a\n" +
 	"\binterval\x18\x02 \x01(\x03R\binterval\x12I\n" +
-	"\rinterval_unit\x18\x03 \x01(\x0e2$.com.evrblk.moab.corepb.IntervalUnitR\fintervalUnit\"\xf2\x04\n" +
+	"\rinterval_unit\x18\x03 \x01(\x0e2$.com.evrblk.moab.corepb.IntervalUnitR\fintervalUnit\"\xb1\x04\n" +
 	"\bSchedule\x122\n" +
 	"\x02id\x18\x01 \x01(\v2\".com.evrblk.moab.corepb.ScheduleIdR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -2669,13 +2645,12 @@ const file_pkg_corepb_queues_proto_rawDesc = "" +
 	"\n" +
 	"dedupe_key\x18\t \x01(\tR\tdedupeKey\x12,\n" +
 	"\x12expires_in_seconds\x18\n" +
-	" \x01(\x03R\x10expiresInSeconds\x12?\n" +
-	"\x1ckeepalive_timeout_in_seconds\x18\v \x01(\x03R\x19keepaliveTimeoutInSeconds\x12L\n" +
-	"\x0eretry_strategy\x18\f \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1a\n" +
-	"\btimezone\x18\r \x01(\tR\btimezone\x12&\n" +
-	"\x0flast_checked_at\x18\x0e \x01(\x10R\rlastCheckedAt\x12*\n" +
-	"\x11next_scheduled_at\x18\x0f \x01(\x10R\x0fnextScheduledAt\x12*\n" +
-	"\x11last_enqueued_for\x18\x10 \x01(\x10R\x0flastEnqueuedFor\"g\n" +
+	" \x01(\x03R\x10expiresInSeconds\x12L\n" +
+	"\x0eretry_strategy\x18\v \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1a\n" +
+	"\btimezone\x18\f \x01(\tR\btimezone\x12&\n" +
+	"\x0flast_checked_at\x18\r \x01(\x10R\rlastCheckedAt\x12*\n" +
+	"\x11next_scheduled_at\x18\x0e \x01(\x10R\x0fnextScheduledAt\x12*\n" +
+	"\x11last_enqueued_for\x18\x0f \x01(\x10R\x0flastEnqueuedFor\"g\n" +
 	"\n" +
 	"ScheduleId\x12\x1d\n" +
 	"\n" +
@@ -2746,7 +2721,7 @@ const file_pkg_corepb_queues_proto_rawDesc = "" +
 	"\x12ListQueuesResponse\x125\n" +
 	"\x06queues\x18\x01 \x03(\v2\x1d.com.evrblk.moab.corepb.QueueR\x06queues\x12[\n" +
 	"\x15next_pagination_token\x18\x02 \x01(\v2'.com.evrblk.moab.corepb.PaginationTokenR\x13nextPaginationToken\x12c\n" +
-	"\x19previous_pagination_token\x18\x03 \x01(\v2'.com.evrblk.moab.corepb.PaginationTokenR\x17previousPaginationToken\"\xac\x04\n" +
+	"\x19previous_pagination_token\x18\x03 \x01(\v2'.com.evrblk.moab.corepb.PaginationTokenR\x17previousPaginationToken\"\xeb\x03\n" +
 	"\x15CreateScheduleRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\x06R\taccountId\x12\x1d\n" +
@@ -2760,12 +2735,11 @@ const file_pkg_corepb_queues_proto_rawDesc = "" +
 	"\apayload\x18\a \x01(\fR\apayload\x12\x1d\n" +
 	"\n" +
 	"dedupe_key\x18\b \x01(\tR\tdedupeKey\x12,\n" +
-	"\x12expires_in_seconds\x18\t \x01(\x03R\x10expiresInSeconds\x12?\n" +
-	"\x1ckeepalive_timeout_in_seconds\x18\n" +
-	" \x01(\x03R\x19keepaliveTimeoutInSeconds\x12L\n" +
-	"\x0eretry_strategy\x18\v \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1a\n" +
-	"\btimezone\x18\f \x01(\tR\btimezone\x12G\n" +
-	"!max_number_of_schedules_per_queue\x18\r \x01(\x03R\x1cmaxNumberOfSchedulesPerQueue\"V\n" +
+	"\x12expires_in_seconds\x18\t \x01(\x03R\x10expiresInSeconds\x12L\n" +
+	"\x0eretry_strategy\x18\n" +
+	" \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1a\n" +
+	"\btimezone\x18\v \x01(\tR\btimezone\x12G\n" +
+	"!max_number_of_schedules_per_queue\x18\f \x01(\x03R\x1cmaxNumberOfSchedulesPerQueue\"V\n" +
 	"\x16CreateScheduleResponse\x12<\n" +
 	"\bschedule\x18\x01 \x01(\v2 .com.evrblk.moab.corepb.ScheduleR\bschedule\"w\n" +
 	"\x12GetScheduleRequest\x12\x1d\n" +
@@ -2783,7 +2757,7 @@ const file_pkg_corepb_queues_proto_rawDesc = "" +
 	"\x15ListSchedulesResponse\x12>\n" +
 	"\tschedules\x18\x01 \x03(\v2 .com.evrblk.moab.corepb.ScheduleR\tschedules\x12[\n" +
 	"\x15next_pagination_token\x18\x02 \x01(\v2'.com.evrblk.moab.corepb.PaginationTokenR\x13nextPaginationToken\x12c\n" +
-	"\x19previous_pagination_token\x18\x03 \x01(\v2'.com.evrblk.moab.corepb.PaginationTokenR\x17previousPaginationToken\"\xed\x03\n" +
+	"\x19previous_pagination_token\x18\x03 \x01(\v2'.com.evrblk.moab.corepb.PaginationTokenR\x17previousPaginationToken\"\xac\x03\n" +
 	"\x15UpdateScheduleRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\x06R\taccountId\x12\x1d\n" +
@@ -2795,12 +2769,11 @@ const file_pkg_corepb_queues_proto_rawDesc = "" +
 	"\apayload\x18\x06 \x01(\fR\apayload\x12\x1d\n" +
 	"\n" +
 	"dedupe_key\x18\a \x01(\tR\tdedupeKey\x12,\n" +
-	"\x12expires_in_seconds\x18\b \x01(\x03R\x10expiresInSeconds\x12?\n" +
-	"\x1ckeepalive_timeout_in_seconds\x18\t \x01(\x03R\x19keepaliveTimeoutInSeconds\x12L\n" +
-	"\x0eretry_strategy\x18\n" +
-	" \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1a\n" +
-	"\btimezone\x18\v \x01(\tR\btimezone\x12)\n" +
-	"\x10expected_version\x18\f \x01(\x03R\x0fexpectedVersion\"V\n" +
+	"\x12expires_in_seconds\x18\b \x01(\x03R\x10expiresInSeconds\x12L\n" +
+	"\x0eretry_strategy\x18\t \x01(\v2%.com.evrblk.moab.corepb.RetryStrategyR\rretryStrategy\x12\x1a\n" +
+	"\btimezone\x18\n" +
+	" \x01(\tR\btimezone\x12)\n" +
+	"\x10expected_version\x18\v \x01(\x03R\x0fexpectedVersion\"V\n" +
 	"\x16UpdateScheduleResponse\x12<\n" +
 	"\bschedule\x18\x01 \x01(\v2 .com.evrblk.moab.corepb.ScheduleR\bschedule\"z\n" +
 	"\x15DeleteScheduleRequest\x12\x1d\n" +

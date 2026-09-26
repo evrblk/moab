@@ -18,7 +18,6 @@ method will return an error if the limit is reached.
   "payload": "",
   "dedupe_key": "",
   "expires_in_seconds": 0,
-  "keepalive_timeout_in_seconds": 15,
   "retry_strategy": {},
   "timezone": "America/Los_Angeles"
 }
@@ -43,7 +42,6 @@ method will return an error if the limit is reached.
     "payload": "",
     "dedupe_key": "",
     "expires_in_seconds": 0,
-    "keepalive_timeout_in_seconds": 15,
     "retry_strategy": {},
     "timezone": "America/Los_Angeles"
   }

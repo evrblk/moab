@@ -59,12 +59,6 @@ func ValidateEnqueueRequest(req *moabpb.EnqueueRequest) error {
 	}
 
 	for i, e := range req.Entries {
-		if e.KeepaliveTimeoutInSeconds != 0 {
-			if err := validateKeepaliveTimeoutInSeconds(e.KeepaliveTimeoutInSeconds, fmt.Sprintf("EnqueueRequest.Entries[%d].KeepaliveTimeoutInSeconds", i)); err != nil {
-				return err
-			}
-		}
-
 		if len(e.DedupeKey) > maxDedupeKeyLength {
 			return invalid(fmt.Sprintf("EnqueueRequest.Entries[%d].DedupeKey", i), fmt.Sprintf("exceeds max length (%d)", maxDedupeKeyLength))
 		}
@@ -110,6 +104,12 @@ func ValidateDequeueRequest(req *moabpb.DequeueRequest) error {
 
 	if req.BatchSize <= 0 {
 		return invalid("DequeueRequest.BatchSize", "must be greater than 0")
+	}
+
+	if req.KeepaliveTimeoutInSeconds != 0 {
+		if err := validateKeepaliveTimeoutInSeconds(req.KeepaliveTimeoutInSeconds, "DequeueRequest.KeepaliveTimeoutInSeconds"); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -188,6 +188,12 @@ func ValidateReportStatusRequest(req *moabpb.ReportStatusRequest) error {
 			moabpb.ReportStatusRequestEntry_STATUS_FAILED:
 		default:
 			return invalid("ReportStatusRequest.Status", "unrecognized value")
+		}
+
+		if e.KeepaliveTimeoutInSeconds != 0 {
+			if err := validateKeepaliveTimeoutInSeconds(e.KeepaliveTimeoutInSeconds, fmt.Sprintf("ReportStatusRequest.Entries[%d].KeepaliveTimeoutInSeconds", i)); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -389,12 +395,6 @@ func ValidateCreateScheduleRequest(req *moabpb.CreateScheduleRequest) error {
 		return invalid("CreateScheduleRequest.Payload", fmt.Sprintf("exceeds max size (%d bytes)", maxPayloadSize))
 	}
 
-	if req.KeepaliveTimeoutInSeconds != 0 {
-		if err := validateKeepaliveTimeoutInSeconds(req.KeepaliveTimeoutInSeconds, "CreateScheduleRequest.KeepaliveTimeoutInSeconds"); err != nil {
-			return err
-		}
-	}
-
 	if req.ExpiresInSeconds != 0 {
 		if err := validateExpiresInSeconds(req.ExpiresInSeconds, "CreateScheduleRequest.ExpiresInSeconds"); err != nil {
 			return err
@@ -423,12 +423,6 @@ func ValidateUpdateScheduleRequest(req *moabpb.UpdateScheduleRequest) error {
 
 	if err := validateDescription(req.Description, "UpdateScheduleRequest.Description"); err != nil {
 		return err
-	}
-
-	if req.KeepaliveTimeoutInSeconds != 0 {
-		if err := validateKeepaliveTimeoutInSeconds(req.KeepaliveTimeoutInSeconds, "UpdateScheduleRequest.KeepaliveTimeoutInSeconds"); err != nil {
-			return err
-		}
 	}
 
 	if req.ExpiresInSeconds != 0 {

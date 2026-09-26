@@ -33,7 +33,7 @@ var gatewayCmd = &cobra.Command{
 	Short: "Run Moab API Gateway",
 	Run: func(cmd *cobra.Command, args []string) {
 		baseLogger := setupLogger(gatewayCmdCfg.log).With("service_name", "gateway")
-		baseLogger.Info("Initializing Moab API Gateway Server...")
+		baseLogger.Info("Initializing Moab API Gateway Server")
 
 		lis, err := net.Listen("tcp", gatewayCmdCfg.gatewayListenAddr)
 		if err != nil {
@@ -84,7 +84,7 @@ var gatewayCmd = &cobra.Command{
 		go func() {
 			select {
 			case <-c:
-				baseLogger.Info("Received SIGINT. Shutting down...")
+				baseLogger.Info("Received SIGINT. Shutting down")
 				cancel()
 				grpcServer.GracefulStop()
 				monsteraClient.Stop()
@@ -104,7 +104,7 @@ var gatewayCmd = &cobra.Command{
 		defer moabApiGatewayServer.Close()
 		moabpb.RegisterMoabApiServer(grpcServer, moabApiGatewayServer)
 
-		baseLogger.Info("Starting API Gateway Server...", "address", gatewayCmdCfg.gatewayListenAddr)
+		baseLogger.Info("Starting API Gateway Server", "address", gatewayCmdCfg.gatewayListenAddr)
 		grpcServer.Serve(lis)
 	},
 }

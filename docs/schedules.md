@@ -4,11 +4,13 @@ You can setup one or more schedules at which Moab will enqueue tasks into a queu
 queue only. You can continue enqueuing tasks into a queue with a schedule normally.
 
 Schedule is set in form of a `cron` expression with a required `timezone`. Each schedule under the hood will basically 
-call `Enqueue` with parameters `payload`, `dedupe_key`, `expires_in_seconds`, `keepalive_timeout_in_seconds`, and 
-`retry_strategy` set from that schedule. `payload` is always the same. `dedupe_key` can be used to avoid a situation 
-when a previous task is still in the queue and has not been processed yet, but the next tick of the schedule has already 
-arrived (see more in [Unique Tasks](/docs/unique-tasks.md)). `expires_in_seconds`, `keepalive_timeout_in_seconds`, and 
-`retry_strategy` can be used to override the default values set on the queue itself.
+call `Enqueue` with parameters `payload`, `dedupe_key`, `expires_in_seconds`, and `retry_strategy` set from that 
+schedule. `payload` is always the same. `dedupe_key` can be used to avoid a situation when a previous task is still 
+in the queue and has not been processed yet, but the next tick of the schedule has already arrived (see more in 
+[Unique Tasks](/docs/unique-tasks.md)). `expires_in_seconds` and `retry_strategy` can be used to override the default 
+values set on the queue itself. `keepalive_timeout_in_seconds` cannot be overridden here — it is controlled by the
+consumer that dequeues a task, not by however the task was enqueued, so it is only ever set on `Dequeue` (see
+[Dequeue](/docs/api/v0/dequeue.md)) or defaulted from the queue.
 
 Internally, the scheduler works periodically by looking a few minutes ahead of the schedule and enqueuing tasks with
 specified `scheduled_at` timestamp. This way tasks appear in the queue exactly according to specified schedule, 

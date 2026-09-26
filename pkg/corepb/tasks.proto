@@ -19,9 +19,8 @@ message Task {
   sfixed64 visible_at = 9;
   sfixed64 last_failed_at = 10;
   bytes debug_info = 11;
-  int64 keepalive_timeout_in_seconds = 12;
-  RetryStrategy retry_strategy = 13;
-  string thread_id = 14;
+  RetryStrategy retry_strategy = 12;
+  string thread_id = 13;
 }
 
 enum TaskState {
@@ -66,10 +65,9 @@ message EnqueueRequestEntry {
   sfixed64 scheduled_at = 2;
   sfixed64 expires_at = 3;
   string dedupe_key = 4;
-  int64 keepalive_timeout_in_seconds = 5;
-  RetryStrategy retry_strategy = 6;
-  repeated OverwriteOnDuplicate overwrite_on_duplicate = 7;
-  string thread_id = 8;
+  RetryStrategy retry_strategy = 5;
+  repeated OverwriteOnDuplicate overwrite_on_duplicate = 6;
+  string thread_id = 7;
 }
 
 message EnqueueResponse {
@@ -85,6 +83,10 @@ message DequeueRequest {
   // keepalive timeout is discovered here, whether the task should be
   // dead-lettered or deleted outright once its retries are exhausted.
   DeadLetterQueueConfig dead_letter_queue_config = 4;
+  // Resolved from the request (or the Queue default) by the server. Applied
+  // to every task this call dequeues: task.KeepaliveTimeoutInSeconds is set
+  // from this value, and VisibleAt computed from it.
+  int64 keepalive_timeout_in_seconds = 5;
 }
 
 message DequeueResponse {
@@ -110,10 +112,38 @@ message ReportStatusRequestEntry {
   TaskId task_id = 1;
   int32 attempt = 2;
   Status status = 3;
+  // Resolved from the request (or the Queue default) by the server, same as
+  // DequeueRequest's field of the same name. Meaningful only when status ==
+  // STATUS_IN_PROGRESS: heartbeatTask uses it (instead of a value stored on
+  // the task) to recompute VisibleAt.
+  int64 keepalive_timeout_in_seconds = 4;
 }
 
 message ReportStatusResponse {
+  // Same length and order as the request's entries, one-to-one.
+  repeated ReportStatusResponseEntry entries = 1;
+}
 
+message ReportStatusResponseEntry {
+  enum Result {
+    RESULT_INVALID = 0;
+    // The status was applied: the task deleted (SUCCEEDED), retried or
+    // dead-lettered (FAILED), or its lease renewed (IN_PROGRESS).
+    RESULT_OK = 1;
+    // No task exists under this id (never did, or an earlier report/reclaim
+    // already deleted it).
+    RESULT_NOT_FOUND = 2;
+    // The task exists but is not IN_PROGRESS - already completed,
+    // dead-lettered, or re-enqueued by the time this report arrived.
+    RESULT_NOT_IN_PROGRESS = 3;
+    // Attempt didn't match the task's current Attempts: its lease already
+    // lapsed and was reclaimed (and possibly redelivered) before this
+    // report arrived.
+    RESULT_STALE_ATTEMPT = 4;
+  }
+
+  TaskId task_id = 1;
+  Result result = 2;
 }
 
 message DeleteTasksRequest {

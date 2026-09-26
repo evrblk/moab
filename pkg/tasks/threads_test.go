@@ -209,4 +209,37 @@ func TestThreadsTable_Index(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, []uint64{2}, thread2TaskIds)
 	})
+
+	t.Run("a thread id that is a string prefix of another is still isolated", func(t *testing.T) {
+		badgerStore, err := store.NewBadgerInMemoryStore()
+		require.NoError(t, err)
+
+		table := newThreadsTable([]byte{0x77, 0x77, 0x77, 0x77})
+
+		accountId, queueId := rand.Uint64(), rand.Uint64()
+
+		txn := badgerStore.Update()
+		require.NoError(t, table.AddToIndex(txn, accountId, queueId, "thread-7-1", 1000, 1))
+		require.NoError(t, table.AddToIndex(txn, accountId, queueId, "thread-7-10", 1000, 2))
+		require.NoError(t, txn.Commit())
+
+		txn = badgerStore.View()
+		defer txn.Discard()
+
+		var shortTaskIds []uint64
+		err = table.ListIndex(txn, accountId, queueId, "thread-7-1", func(taskId uint64) (bool, error) {
+			shortTaskIds = append(shortTaskIds, taskId)
+			return true, nil
+		})
+		require.NoError(t, err)
+		require.Equal(t, []uint64{1}, shortTaskIds)
+
+		var longTaskIds []uint64
+		err = table.ListIndex(txn, accountId, queueId, "thread-7-10", func(taskId uint64) (bool, error) {
+			longTaskIds = append(longTaskIds, taskId)
+			return true, nil
+		})
+		require.NoError(t, err)
+		require.Equal(t, []uint64{2}, longTaskIds)
+	})
 }

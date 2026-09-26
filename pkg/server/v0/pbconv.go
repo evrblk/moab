@@ -199,6 +199,7 @@ func taskToFront(t *corepb.Task) *moabpb.Task {
 			DedupeKey:   t.DedupeKey,
 			ThreadId:    t.ThreadId,
 			State:       taskStateToFront(t.State),
+			VisibleAt:   t.VisibleAt,
 		}
 	} else {
 		return nil
@@ -273,6 +274,30 @@ func reportedStatusToCore(s moabpb.ReportStatusRequestEntry_Status) (corepb.Repo
 	}
 }
 
+func reportStatusResponseEntriesToFront(l []*corepb.ReportStatusResponseEntry) []*moabpb.ReportStatusResponseEntry {
+	return lo.Map(l, func(e *corepb.ReportStatusResponseEntry, _ int) *moabpb.ReportStatusResponseEntry {
+		return &moabpb.ReportStatusResponseEntry{
+			TaskId: ids.EncodeTaskId(e.TaskId.TaskId),
+			Result: reportStatusResultToFront(e.Result),
+		}
+	})
+}
+
+func reportStatusResultToFront(r corepb.ReportStatusResponseEntry_Result) moabpb.ReportStatusResponseEntry_Result {
+	switch r {
+	case corepb.ReportStatusResponseEntry_RESULT_OK:
+		return moabpb.ReportStatusResponseEntry_RESULT_OK
+	case corepb.ReportStatusResponseEntry_RESULT_NOT_FOUND:
+		return moabpb.ReportStatusResponseEntry_RESULT_NOT_FOUND
+	case corepb.ReportStatusResponseEntry_RESULT_NOT_IN_PROGRESS:
+		return moabpb.ReportStatusResponseEntry_RESULT_NOT_IN_PROGRESS
+	case corepb.ReportStatusResponseEntry_RESULT_STALE_ATTEMPT:
+		return moabpb.ReportStatusResponseEntry_RESULT_STALE_ATTEMPT
+	default:
+		return moabpb.ReportStatusResponseEntry_RESULT_INVALID
+	}
+}
+
 func schedulesToFront(l []*corepb.Schedule, queueName string) []*moabpb.Schedule {
 	return lo.Map(l, func(s *corepb.Schedule, _ int) *moabpb.Schedule {
 		return scheduleToFront(s, queueName)
@@ -282,19 +307,18 @@ func schedulesToFront(l []*corepb.Schedule, queueName string) []*moabpb.Schedule
 func scheduleToFront(s *corepb.Schedule, queueName string) *moabpb.Schedule {
 	if s != nil {
 		return &moabpb.Schedule{
-			Name:                      s.Name,
-			Description:               s.Description,
-			QueueName:                 queueName,
-			CreatedAt:                 s.CreatedAt,
-			UpdatedAt:                 s.UpdatedAt,
-			Cron:                      s.Cron,
-			Version:                   s.Version,
-			Payload:                   s.Payload,
-			DedupeKey:                 s.DedupeKey,
-			ExpiresInSeconds:          s.ExpiresInSeconds,
-			KeepaliveTimeoutInSeconds: s.KeepaliveTimeoutInSeconds,
-			RetryStrategy:             retryStrategyToFront(s.RetryStrategy),
-			Timezone:                  s.Timezone,
+			Name:             s.Name,
+			Description:      s.Description,
+			QueueName:        queueName,
+			CreatedAt:        s.CreatedAt,
+			UpdatedAt:        s.UpdatedAt,
+			Cron:             s.Cron,
+			Version:          s.Version,
+			Payload:          s.Payload,
+			DedupeKey:        s.DedupeKey,
+			ExpiresInSeconds: s.ExpiresInSeconds,
+			RetryStrategy:    retryStrategyToFront(s.RetryStrategy),
+			Timezone:         s.Timezone,
 			// LastExecutedAt:            s.LastExecutedAt,
 			//NextScheduledAt:           s.NextScheduledAt,
 		}

@@ -105,12 +105,17 @@ func (t *threadsTable) ListIndex(txn *store.Txn, accountId uint64, queueId uint6
 	})
 }
 
+// tablePK and threadIndexPK length-prefix threadId before appending its
+// bytes: without that, ConcatBytes' raw concatenation would let one
+// thread id's key be a byte-prefix of another's (e.g. "thread-1" of
+// "thread-10"), so a threadIndexPK prefix scan (ListIndex/ListAll) for the
+// shorter id would also match every entry indexed under the longer one.
 func (t *threadsTable) tablePK(accountId uint64, queueId uint64, threadId string) []byte {
-	return utils.ConcatBytes(accountId, queueId, threadId)
+	return utils.ConcatBytes(accountId, queueId, uint32(len(threadId)), threadId)
 }
 
 func (t *threadsTable) threadIndexPK(accountId uint64, queueId uint64, threadId string) []byte {
-	return utils.ConcatBytes(accountId, queueId, threadId)
+	return utils.ConcatBytes(accountId, queueId, uint32(len(threadId)), threadId)
 }
 
 // scheduledAt is encoded as plain big-endian, so byte-lexicographic ordering

@@ -20,8 +20,8 @@ Core concepts (see `docs/concepts.md`, `docs/retries.md`, `docs/threads.md`, `do
   once retries are exhausted. Every task has an absolute `ExpiresAt`; a GC worker sweeps it
   regardless of state once that passes, independent of the retry/DLQ path.
 - **Schedule** — a cron expression (7-segment, via `gronx`) attached to a queue; a background
-  worker enqueues one task per due tick, reusing the queue's retry/keepalive/expiration settings
-  by default.
+  worker enqueues one task per due tick, reusing the queue's retry/expiration settings by default
+  (keepalive timeout is not one of them — see below, it's a `Dequeue`-time concern only).
 - **Thread** (`thread_id`) — FIFO sub-ordering within a queue: only the earliest task of a thread
   (its "head") is ever dequeued at a time; the rest sit invisible (`ENQUEUED` but not in
   the dequeue index) until the head succeeds or dies, at which point the next-earliest is promoted.
@@ -56,8 +56,10 @@ pkg/server/v0/handler.go      MoabApiServerHandler
    │  - resolves QueueName → *Queue via s.getQueue (10s TTL cache, keyed accountId/queueName)
    │  - generates a random QueueId/ScheduleId at this layer, retries on IDCollision (up to
    │    maxIDGenerationAttempts=5)
-   │  - fills in per-entry defaults from the queue (keepalive timeout, retry strategy, expires_at
-   │    capped at the queue's own default)
+   │  - fills in per-entry defaults from the queue on Enqueue (retry strategy, expires_at capped
+   │    at the queue's own default), and, on Dequeue, the batch's keepalive timeout (request
+   │    override or the queue's default — keepalive is a consumer/Dequeue-time concern, not an
+   │    Enqueue one)
    │  - decodes public TaskId strings (pkg/ids), converts front pb ⇄ core pb (pbconv.go),
    │    pagination tokens (base64 ⇄ core)
    ▼

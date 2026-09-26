@@ -46,7 +46,10 @@ func setupLogger(f logFlags) *slog.Logger {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     level,
+		AddSource: true,
+	}))
 }
 
 // nodeCoreLogFlags controls the raft-backed `node` command's core

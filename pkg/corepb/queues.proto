@@ -82,15 +82,14 @@ message Schedule {
 
   // Override for expiration set on the queue. 0 - no override.
   int64 expires_in_seconds = 10;
-  int64 keepalive_timeout_in_seconds = 11;
-  RetryStrategy retry_strategy = 12;
+  RetryStrategy retry_strategy = 11;
   // Timezone at which to work with cron schedule
-  string timezone = 13;
+  string timezone = 12;
   // Last time CronTasker checked on this schedule
-  sfixed64 last_checked_at = 14;
+  sfixed64 last_checked_at = 13;
   // Next earliest cron tick which is scheduled, but not enqueued yet
-  sfixed64 next_scheduled_at = 15;
-  sfixed64 last_enqueued_for = 16;
+  sfixed64 next_scheduled_at = 14;
+  sfixed64 last_enqueued_for = 15;
 
   // TODO pause schedule
 }
@@ -203,10 +202,9 @@ message CreateScheduleRequest {
   bytes payload = 7;
   string dedupe_key = 8;
   int64 expires_in_seconds = 9;
-  int64 keepalive_timeout_in_seconds = 10;
-  RetryStrategy retry_strategy = 11;
-  string timezone = 12;
-  int64 max_number_of_schedules_per_queue = 13;
+  RetryStrategy retry_strategy = 10;
+  string timezone = 11;
+  int64 max_number_of_schedules_per_queue = 12;
 }
 
 message CreateScheduleResponse {
@@ -244,12 +242,11 @@ message UpdateScheduleRequest {
   bytes payload = 6;
   string dedupe_key = 7;
   int64 expires_in_seconds = 8;
-  int64 keepalive_timeout_in_seconds = 9;
-  RetryStrategy retry_strategy = 10;
-  string timezone = 11;
+  RetryStrategy retry_strategy = 9;
+  string timezone = 10;
   // Optimistic concurrency check: must equal the schedule's current version or
   // the update is rejected.
-  int64 expected_version = 12;
+  int64 expected_version = 11;
 }
 
 message UpdateScheduleResponse {

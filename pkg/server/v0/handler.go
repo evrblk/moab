@@ -196,12 +196,6 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 
 	entries := make([]*corepb.EnqueueRequestEntry, len(req.Entries))
 	for i, e := range req.Entries {
-		// Take keepaliveTimeout from request (if it is specified) or from queue as a default
-		keepaliveTimeout := e.KeepaliveTimeoutInSeconds
-		if keepaliveTimeout == 0 {
-			keepaliveTimeout = queue.KeepaliveTimeoutInSeconds
-		}
-
 		// Take RetryStrategy from request (if it is specified) or from queue as a default
 		retryStrategy := retryStrategyToCore(e.RetryStrategy)
 		if retryStrategy == nil {
@@ -214,14 +208,13 @@ func (s *MoabApiServerHandler) Enqueue(ctx context.Context, req *moabpb.EnqueueR
 		}
 
 		entries[i] = &corepb.EnqueueRequestEntry{
-			Payload:                   e.Payload,
-			ScheduledAt:               e.ScheduledAt,
-			ExpiresAt:                 expiresAt,
-			DedupeKey:                 e.DedupeKey,
-			ThreadId:                  e.ThreadId,
-			KeepaliveTimeoutInSeconds: keepaliveTimeout,
-			RetryStrategy:             retryStrategy,
-			OverwriteOnDuplicate:      overwriteOnDuplicateToCore(e.OverwriteOnDuplicate),
+			Payload:              e.Payload,
+			ScheduledAt:          e.ScheduledAt,
+			ExpiresAt:            expiresAt,
+			DedupeKey:            e.DedupeKey,
+			ThreadId:             e.ThreadId,
+			RetryStrategy:        retryStrategy,
+			OverwriteOnDuplicate: overwriteOnDuplicateToCore(e.OverwriteOnDuplicate),
 		}
 	}
 
@@ -306,12 +299,23 @@ func (s *MoabApiServerHandler) Dequeue(ctx context.Context, req *moabpb.DequeueR
 		// If dequeue limit is not set (is 0) then 1 is default
 		dequeueLimit = 1
 	}
+
+	// Take keepaliveTimeout from the request (if it is specified) or from the
+	// queue as a default. Unlike Enqueue, this is the consumer's own call —
+	// it, not the producer, is the one that knows how long it needs to hold
+	// the lease.
+	keepaliveTimeout := req.KeepaliveTimeoutInSeconds
+	if keepaliveTimeout == 0 {
+		keepaliveTimeout = queue.KeepaliveTimeoutInSeconds
+	}
+
 	var meta mrpc.ResponseMeta
 	dequeueResponse, err := s.moabClient.Dequeue(ctx, &corepb.DequeueRequest{
-		QueueId:               queue.Id,
-		DequeuingSettings:     queue.DequeuingSettings,
-		DequeueLimit:          dequeueLimit,
-		DeadLetterQueueConfig: queue.DeadLetterQueueConfig,
+		QueueId:                   queue.Id,
+		DequeuingSettings:         queue.DequeuingSettings,
+		DequeueLimit:              dequeueLimit,
+		DeadLetterQueueConfig:     queue.DeadLetterQueueConfig,
+		KeepaliveTimeoutInSeconds: keepaliveTimeout,
 	}, mrpc.WithResponseMeta(&meta))
 	if err != nil {
 		freshQueue, refreshErr := s.retryWithFreshQueueIfPurged(ctx, accountId, req.QueueName, err)
@@ -322,11 +326,17 @@ func (s *MoabApiServerHandler) Dequeue(ctx context.Context, req *moabpb.DequeueR
 			return nil, mrpc.ErrorToGRPC(err)
 		}
 
+		freshKeepaliveTimeout := req.KeepaliveTimeoutInSeconds
+		if freshKeepaliveTimeout == 0 {
+			freshKeepaliveTimeout = freshQueue.KeepaliveTimeoutInSeconds
+		}
+
 		dequeueResponse, err = s.moabClient.Dequeue(ctx, &corepb.DequeueRequest{
-			QueueId:               freshQueue.Id,
-			DequeuingSettings:     freshQueue.DequeuingSettings,
-			DequeueLimit:          dequeueLimit,
-			DeadLetterQueueConfig: freshQueue.DeadLetterQueueConfig,
+			QueueId:                   freshQueue.Id,
+			DequeuingSettings:         freshQueue.DequeuingSettings,
+			DequeueLimit:              dequeueLimit,
+			DeadLetterQueueConfig:     freshQueue.DeadLetterQueueConfig,
+			KeepaliveTimeoutInSeconds: freshKeepaliveTimeout,
 		}, mrpc.WithResponseMeta(&meta))
 		if err != nil {
 			return nil, mrpc.ErrorToGRPC(err)
@@ -360,18 +370,27 @@ func (s *MoabApiServerHandler) ReportStatus(ctx context.Context, req *moabpb.Rep
 			return nil, mrpc.ErrorToGRPC(err)
 		}
 
+		// Take keepaliveTimeout from the request (if it is specified) or from
+		// the queue as a default — same as Dequeue's. Only meaningful for a
+		// STATUS_IN_PROGRESS heartbeat, but harmless to resolve unconditionally.
+		keepaliveTimeout := e.KeepaliveTimeoutInSeconds
+		if keepaliveTimeout == 0 {
+			keepaliveTimeout = resp1.Queue.KeepaliveTimeoutInSeconds
+		}
+
 		entries[i] = &corepb.ReportStatusRequestEntry{
 			TaskId: &corepb.TaskId{
 				AccountId: accountId,
 				QueueId:   resp1.Queue.Id.QueueId,
 				TaskId:    taskId,
 			},
-			Status:  reportedStatus,
-			Attempt: e.Attempt,
+			Status:                    reportedStatus,
+			Attempt:                   e.Attempt,
+			KeepaliveTimeoutInSeconds: keepaliveTimeout,
 		}
 	}
 
-	_, err = s.moabClient.ReportStatus(ctx, &corepb.ReportStatusRequest{
+	reportResp, err := s.moabClient.ReportStatus(ctx, &corepb.ReportStatusRequest{
 		QueueId:               resp1.Queue.Id,
 		Entries:               entries,
 		DeadLetterQueueConfig: resp1.Queue.DeadLetterQueueConfig,
@@ -380,7 +399,9 @@ func (s *MoabApiServerHandler) ReportStatus(ctx context.Context, req *moabpb.Rep
 		return nil, mrpc.ErrorToGRPC(err)
 	}
 
-	return &moabpb.ReportStatusResponse{}, nil
+	return &moabpb.ReportStatusResponse{
+		Entries: reportStatusResponseEntriesToFront(reportResp.Entries),
+	}, nil
 }
 
 func (s *MoabApiServerHandler) DeleteTasks(ctx context.Context, req *moabpb.DeleteTasksRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.DeleteTasksResponse, error) {
@@ -471,7 +492,6 @@ func (s *MoabApiServerHandler) CreateSchedule(ctx context.Context, req *moabpb.C
 			ScheduleId:                   rand.Uint64(),
 			ScheduleName:                 req.Name,
 			Description:                  req.Description,
-			KeepaliveTimeoutInSeconds:    req.KeepaliveTimeoutInSeconds,
 			RetryStrategy:                retryStrategyToCore(req.RetryStrategy),
 			Cron:                         req.Cron,
 			Payload:                      req.Payload,
@@ -512,18 +532,17 @@ func (s *MoabApiServerHandler) GetSchedule(ctx context.Context, req *moabpb.GetS
 
 func (s *MoabApiServerHandler) UpdateSchedule(ctx context.Context, req *moabpb.UpdateScheduleRequest, accountId uint64, limits moab.ServiceLimits) (*moabpb.UpdateScheduleResponse, error) {
 	res, err := s.moabClient.UpdateSchedule(ctx, &corepb.UpdateScheduleRequest{
-		AccountId:                 accountId,
-		QueueName:                 req.QueueName,
-		ScheduleName:              req.ScheduleName,
-		Description:               req.Description,
-		KeepaliveTimeoutInSeconds: req.KeepaliveTimeoutInSeconds,
-		RetryStrategy:             retryStrategyToCore(req.RetryStrategy),
-		Cron:                      req.Cron,
-		Payload:                   req.Payload,
-		DedupeKey:                 req.DedupeKey,
-		ExpiresInSeconds:          req.ExpiresInSeconds,
-		Timezone:                  req.Timezone,
-		ExpectedVersion:           req.ExpectedVersion,
+		AccountId:        accountId,
+		QueueName:        req.QueueName,
+		ScheduleName:     req.ScheduleName,
+		Description:      req.Description,
+		RetryStrategy:    retryStrategyToCore(req.RetryStrategy),
+		Cron:             req.Cron,
+		Payload:          req.Payload,
+		DedupeKey:        req.DedupeKey,
+		ExpiresInSeconds: req.ExpiresInSeconds,
+		Timezone:         req.Timezone,
+		ExpectedVersion:  req.ExpectedVersion,
 	})
 	if err != nil {
 		return nil, mrpc.ErrorToGRPC(err)

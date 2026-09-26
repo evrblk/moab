@@ -43,8 +43,10 @@ is __at most once__ delivery guarantee for each attempt.
 When dequeued, tasks go to `IN_PROGRESS` state and `attempts = 1` indicates that it is picked up for the first time. 
 They are removed from the main index and added to InProgress index. A task is considered in-progress for 
 `keepalive_timeout_in_seconds` period, so it is placed to the InProgress index at `now + keepalive_timeout_in_seconds` 
-position. Optional `keepalive_timeout_in_seconds` can be set in `Enqueue` request for each task individually, otherwise
-a default `keepalive_timeout_in_seconds` from the queue is used. 
+position. Optional `keepalive_timeout_in_seconds` can be set in the `Dequeue` request for the batch of tasks it picks
+up, otherwise a default `keepalive_timeout_in_seconds` from the queue is used. It is set on `Dequeue` rather than
+`Enqueue` because it is the worker dequeuing a task, not whatever enqueued it, that knows how long it actually needs
+to hold the lease.
 
 ![Concepts](/docs/images/concepts-4.png)
 
@@ -52,8 +54,11 @@ A worker must report a status of an in-progress task within this `keepalive_time
 can be any of:
 
 * `SUCCEEDED` - the worker has successfully processed this task.
-* `IN_PROGRESS` - the worker is still processing this task. There is no upper limit for long-processing tasks as long
-  as a worker is able to report status every `keepalive_timeout_in_seconds`.
+* `IN_PROGRESS` - the worker is still processing this task and wants to renew its lease. There is no upper limit for
+  long-processing tasks as long as a worker keeps reporting before its lease expires. This report can itself carry
+  an optional `keepalive_timeout_in_seconds`, same as `Dequeue`'s — 0 (or omitted) inherits the queue's default,
+  otherwise it overrides it for this renewal. The task never stores a keepalive timeout of its own: each `Dequeue`
+  and each `IN_PROGRESS` report resolves its own, independently.
 * `FAILED` - there was a failure while processing this task and the worker recognized this failure.
 
 Succeeded tasks are removed from the queue. In-progress tasks are moved in InProgress index further to the next 

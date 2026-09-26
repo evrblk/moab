@@ -21,7 +21,6 @@ even if there were no effective changes.
   "payload": "{\"amount_in_grams\": 50}",
   "dedupe_key": "",
   "expires_in_seconds": 0,
-  "keepalive_timeout_in_seconds": 15,
   "retry_strategy": {
     "retry_intervals_in_seconds": [5, 30, 120]
   },
@@ -49,7 +48,6 @@ even if there were no effective changes.
     "payload": "{\"amount_in_grams\": 50}",
     "dedupe_key": "",
     "expires_in_seconds": 0,
-    "keepalive_timeout_in_seconds": 15,
     "retry_strategy": {
       "retry_intervals_in_seconds": [5, 30, 120]
     },

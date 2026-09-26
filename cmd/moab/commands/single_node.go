@@ -39,7 +39,7 @@ var singleNodeCmd = &cobra.Command{
 	Short: "Run Moab in single-node mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		baseLogger := setupLogger(singleNodeCmdCfg.log).With("service_name", "single-node")
-		baseLogger.Info("Initializing Moab...")
+		baseLogger.Info("Initializing Moab")
 
 		lis, err := net.Listen("tcp", singleNodeCmdCfg.gatewayListenAddr)
 		if err != nil {
@@ -110,7 +110,7 @@ var singleNodeCmd = &cobra.Command{
 		go func() {
 			select {
 			case <-c:
-				baseLogger.Info("Received SIGINT. Shutting down...")
+				baseLogger.Info("Received SIGINT. Shutting down")
 				cancel()
 				moabQueuesCronWorker.Stop()
 				moabTasksGCWorker.Stop()
@@ -130,7 +130,7 @@ var singleNodeCmd = &cobra.Command{
 		defer moabApiGatewayServer.Close()
 		moabpb.RegisterMoabApiServer(grpcServer, moabApiGatewayServer)
 
-		baseLogger.Info("Starting API Gateway Server...", "address", singleNodeCmdCfg.gatewayListenAddr)
+		baseLogger.Info("Starting API Gateway Server", "address", singleNodeCmdCfg.gatewayListenAddr)
 		grpcServer.Serve(lis)
 	},
 }

@@ -29,7 +29,7 @@ var workerCmd = &cobra.Command{
 	Short: "Run Moab background worker",
 	Run: func(cmd *cobra.Command, args []string) {
 		baseLogger := setupLogger(workerCmdCfg.log).With("service_name", "worker")
-		baseLogger.Info("Initializing Moab Worker...")
+		baseLogger.Info("Initializing Moab Worker")
 
 		// Metrics
 		workers.RegisterMetrics(prometheus.DefaultRegisterer)
@@ -75,7 +75,7 @@ var workerCmd = &cobra.Command{
 		go func() {
 			select {
 			case <-c:
-				baseLogger.Info("Received SIGINT. Shutting down...")
+				baseLogger.Info("Received SIGINT. Shutting down")
 				cancel()
 				metricsSrv.Stop()
 				moabQueuesCronWorker.Stop()
